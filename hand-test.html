@@ -1,0 +1,673 @@
+<!doctype html>
+<!--
+  손 인식 진단/테스트 페이지 (index.html의 메인 작품과는 별개).
+  카메라 화면과 랜드마크를 그대로 보여주고, 검지+엄지 핀치를 화면 터치(클릭)로 변환한다.
+  실행: 로컬 서버로 열 것 (file://는 카메라/모듈 로딩이 막힐 수 있음).
+-->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hand Tracking 진단 페이지</title>
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0d0b1a;font-family:"Malgun Gothic","Segoe UI",sans-serif;}
+  #video{display:none}
+  #view{position:fixed;inset:0;width:100%;height:100%;}
+
+  .cursor{
+    position:fixed;top:0;left:0;width:34px;height:34px;border-radius:50%;
+    border:2.5px solid #a78bfa;transform:translate(-50%,-50%);
+    pointer-events:none;opacity:0;transition:opacity .15s ease,background .1s ease,width .1s ease,height .1s ease;
+    box-shadow:0 0 14px rgba(167,139,250,.7);z-index:50;
+  }
+  .cursor.show{opacity:1}
+  .cursor.pinch{background:#e8b34a;border-color:#e8b34a;width:22px;height:22px;box-shadow:0 0 20px rgba(232,179,74,.9)}
+
+  .ripple{
+    position:fixed;top:0;left:0;width:14px;height:14px;border-radius:50%;
+    border:2px solid #e8b34a;transform:translate(-50%,-50%);pointer-events:none;z-index:49;
+    animation:rip .5s ease-out forwards;
+  }
+  @keyframes rip{ to{ width:120px;height:120px;opacity:0; } }
+
+  #panel{
+    position:fixed;left:16px;top:16px;background:rgba(13,11,26,.78);border:1px solid #3a3550;
+    border-radius:10px;padding:14px 18px;color:#c7bdf0;font-size:13px;line-height:1.7;
+    font-family:Consolas,monospace;min-width:240px;z-index:30;backdrop-filter:blur(3px);
+  }
+  #panel h1{font-size:14px;color:#fff;margin:0 0 8px;font-family:"Malgun Gothic",sans-serif}
+  #panel .hand{margin-top:8px;padding-top:8px;border-top:1px dashed #3a3550}
+  #panel .g{color:#e8b34a;font-weight:bold}
+  #panel .bar{background:#231d3d;border-radius:4px;height:6px;overflow:hidden;margin-top:3px}
+  #panel .bar i{display:block;height:100%;background:#7c3aed}
+
+  #hint{
+    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);color:#c7bdf0;
+    font-size:13px;background:rgba(13,11,26,.7);padding:8px 16px;border-radius:20px;
+    border:1px solid #3a3550;z-index:30;
+  }
+
+  #demo{
+    position:fixed;right:16px;top:16px;display:grid;grid-template-columns:repeat(3,74px);
+    gap:10px;z-index:30;
+  }
+  #demo button{
+    width:74px;height:74px;border-radius:12px;border:1px solid #3a3550;background:#17142a;
+    color:#c7bdf0;font-family:Consolas,monospace;font-size:13px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    transition:background .12s ease,transform .12s ease,border-color .12s ease;
+  }
+  #demo button b{font-size:20px;color:#fff}
+  #demo button.hit{background:#7c3aed;border-color:#a78bfa;transform:scale(1.08)}
+
+  #start{
+    position:fixed;inset:0;background:#0d0b1a;color:#f0eefb;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;text-align:center;z-index:100;cursor:pointer;
+    transition:opacity .6s ease;
+  }
+  #start h1{margin:0;font-size:20px;color:#fff}
+  #start p{margin:0;color:#a78bfa;font-size:13px;max-width:380px}
+  #start .err{color:#e8846a;font-size:12px;max-width:380px}
+  #start.hidden{opacity:0;pointer-events:none}
+
+  #shape-panel{
+    position:fixed;left:16px;bottom:16px;max-width:640px;
+    background:rgba(13,11,26,.78);border:1px solid #3a3550;border-radius:10px;
+    padding:10px 12px;z-index:30;backdrop-filter:blur(3px);
+  }
+  #shape-panel .sp-title{
+    font-family:Consolas,monospace;font-size:11px;color:#a78bfa;letter-spacing:.1em;
+    margin-bottom:8px;
+  }
+  #shape-panel .sp-grid{display:flex;flex-wrap:wrap;gap:6px;max-width:600px}
+  #shape-panel button{
+    padding:6px 10px;border-radius:8px;border:1px solid #3a3550;background:#17142a;
+    color:#c7bdf0;font-family:Consolas,monospace;font-size:11px;cursor:pointer;
+  }
+  #shape-panel button:hover{background:#2a2350;border-color:#7c3aed}
+
+  #shape-preview{
+    position:fixed;inset:0;background:rgba(5,4,12,.88);z-index:90;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;
+  }
+  #shape-preview.show{opacity:1;pointer-events:auto}
+  #shape-preview canvas{border-radius:16px;border:1px solid #3a3550}
+  #shape-preview .sp-name{
+    font-family:Consolas,monospace;color:#fff;font-size:18px;letter-spacing:.15em;
+  }
+  #shape-preview button{
+    padding:8px 22px;border-radius:20px;border:1px solid #3a3550;background:#17142a;
+    color:#c7bdf0;font-family:Consolas,monospace;font-size:13px;cursor:pointer;
+  }
+  #shape-preview button:hover{background:#2a2350;border-color:#7c3aed}
+</style>
+</head>
+<body>
+
+<video id="video" playsinline muted></video>
+<canvas id="view"></canvas>
+
+<div id="cur0" class="cursor"></div>
+<div id="cur1" class="cursor"></div>
+
+<div id="panel">
+  <h1>Hand Tracking 진단</h1>
+  <div id="fps">FPS: -</div>
+  <div id="hands">감지된 손 없음</div>
+</div>
+
+<div id="demo">
+  <button data-n="1"><b>1</b>touch</button>
+  <button data-n="2"><b>2</b>touch</button>
+  <button data-n="3"><b>3</b>touch</button>
+  <button data-n="4"><b>4</b>touch</button>
+  <button data-n="5"><b>5</b>touch</button>
+  <button data-n="6"><b>6</b>touch</button>
+</div>
+
+<div id="hint">검지와 엄지를 맞닿게 하면 그 위치를 터치(클릭)합니다</div>
+
+<div id="shape-panel">
+  <div class="sp-title">큰 별로 만들 수 있는 도형·별자리 미리보기</div>
+  <div class="sp-grid" id="sp-grid"></div>
+</div>
+<div id="shape-preview">
+  <canvas id="sp-canvas" width="480" height="480"></canvas>
+  <div class="sp-name" id="sp-name"></div>
+  <button id="sp-close">닫기</button>
+</div>
+
+<div id="start">
+  <h1>손 인식 진단 페이지</h1>
+  <p>카메라 화면과 인식된 손 랜드마크를 그대로 보여줍니다.<br>화면을 터치하면 카메라를 시작합니다.</p>
+  <p class="err" id="start-err"></p>
+</div>
+
+<script type="module">
+import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const MAX_HANDS = 2;
+const PINCH_NORM = 0.045;
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("view");
+const ctx = canvas.getContext("2d");
+let W = window.innerWidth, H = window.innerHeight;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W; canvas.height = H;
+}
+window.addEventListener("resize", resize);
+resize();
+
+const HAND_CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [0,9],[9,10],[10,11],[11,12],
+  [0,13],[13,14],[14,15],[15,16],
+  [0,17],[17,18],[18,19],[19,20],
+  [5,9],[9,13],[13,17],
+];
+const HAND_TIP = [4, 8, 12, 16, 20];
+const HAND_PIP = [3, 6, 10, 14, 18];
+
+function fingerExtended(lm, tip, pip, wrist) {
+  const dTip = Math.hypot(lm[tip].x - wrist.x, lm[tip].y - wrist.y);
+  const dPip = Math.hypot(lm[pip].x - wrist.x, lm[pip].y - wrist.y);
+  return dTip > dPip * 1.12;
+}
+function classifyHand(lm, pinchDist) {
+  const wrist = lm[0];
+  let extended = 0;
+  for (let f = 0; f < 5; f++) if (fingerExtended(lm, HAND_TIP[f], HAND_PIP[f], wrist)) extended++;
+  if (pinchDist < PINCH_NORM) return "PINCH";
+  if (extended >= 4) return "OPEN";
+  if (extended <= 1) return "FIST";
+  return "POINT";
+}
+
+function getCoverRect(vw, vh, cw, ch) {
+  const scale = Math.max(cw / vw, ch / vh);
+  const dw = vw * scale, dh = vh * scale;
+  return { dx: (cw - dw) / 2, dy: (ch - dh) / 2, dw, dh };
+}
+function mapPoint(nx, ny, rect) {
+  return { x: W - (rect.dx + nx * rect.dw), y: rect.dy + ny * rect.dh };
+}
+
+function simulateTap(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (!el || el === canvas) return;
+  const base = { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window };
+  el.dispatchEvent(new PointerEvent("pointerdown", { ...base, pointerId: 1, pointerType: "touch" }));
+  el.dispatchEvent(new MouseEvent("mousedown", base));
+  el.dispatchEvent(new PointerEvent("pointerup", { ...base, pointerId: 1, pointerType: "touch" }));
+  el.dispatchEvent(new MouseEvent("mouseup", base));
+  el.dispatchEvent(new MouseEvent("click", base));
+}
+function spawnRipple(x, y) {
+  const r = document.createElement("div");
+  r.className = "ripple";
+  r.style.left = x + "px"; r.style.top = y + "px";
+  document.body.appendChild(r);
+  r.addEventListener("animationend", () => r.remove());
+}
+
+document.querySelectorAll("#demo button").forEach((b) => {
+  b.addEventListener("click", () => {
+    const n = (parseInt(b.dataset.count || "0", 10) + 1);
+    b.dataset.count = n;
+    b.querySelector("b").textContent = n;
+    b.classList.add("hit");
+    setTimeout(() => b.classList.remove("hit"), 160);
+  });
+});
+
+const cursorEls = [document.getElementById("cur0"), document.getElementById("cur1")];
+const handsState = Array.from({ length: MAX_HANDS }, () => ({ active: false, wasPinch: false }));
+const handsPanel = document.getElementById("hands");
+const fpsEl = document.getElementById("fps");
+
+let handLandmarker = null;
+let lastFrameT = performance.now();
+let fpsSmooth = 0;
+
+async function initTracker() {
+  const fileset = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+  );
+  handLandmarker = await HandLandmarker.createFromOptions(fileset, {
+    baseOptions: {
+      modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+      delegate: "GPU",
+    },
+    runningMode: "VIDEO",
+    numHands: MAX_HANDS,
+  });
+}
+async function initCamera() {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+    audio: false,
+  });
+  video.srcObject = stream;
+  await video.play();
+  await new Promise((res) => {
+    if (video.readyState >= 2) return res();
+    video.addEventListener("loadeddata", res, { once: true });
+  });
+}
+
+let busy = false;
+function drawHand(lm, rect, gesture, label) {
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(167,139,250,.85)";
+  ctx.beginPath();
+  for (const [a, b] of HAND_CONNECTIONS) {
+    const pa = mapPoint(lm[a].x, lm[a].y, rect);
+    const pb = mapPoint(lm[b].x, lm[b].y, rect);
+    ctx.moveTo(pa.x, pa.y);
+    ctx.lineTo(pb.x, pb.y);
+  }
+  ctx.stroke();
+
+  for (let i = 0; i < lm.length; i++) {
+    const p = mapPoint(lm[i].x, lm[i].y, rect);
+    const tip = HAND_TIP.includes(i);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, tip ? 5 : 3, 0, Math.PI * 2);
+    ctx.fillStyle = tip ? "#e8b34a" : "#c7bdf0";
+    ctx.fill();
+  }
+
+  const wristP = mapPoint(lm[0].x, lm[0].y, rect);
+  ctx.font = "13px Consolas, monospace";
+  ctx.fillStyle = "#fff";
+  ctx.fillText(`${label} · ${gesture}`, wristP.x + 14, wristP.y + 6);
+}
+
+async function frame() {
+  requestAnimationFrame(frame);
+  const now = performance.now();
+  const dt = now - lastFrameT; lastFrameT = now;
+  fpsSmooth = fpsSmooth ? fpsSmooth * 0.9 + (1000 / dt) * 0.1 : 1000 / dt;
+  fpsEl.textContent = "FPS: " + fpsSmooth.toFixed(0);
+
+  if (video.readyState < 2) return;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const rect = getCoverRect(vw, vh, W, H);
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, rect.dx, rect.dy, rect.dw, rect.dh);
+  ctx.restore();
+
+  if (busy || !handLandmarker) return;
+  busy = true;
+  let panelHtml = "";
+  try {
+    const res = handLandmarker.detectForVideo(video, now);
+    const list = res.landmarks || [];
+    const handedness = res.handedness || [];
+
+    for (let s = 0; s < MAX_HANDS; s++) {
+      const lm = list[s];
+      const st = handsState[s];
+      const cursor = cursorEls[s];
+      if (!lm) {
+        st.active = false; st.wasPinch = false;
+        cursor.classList.remove("show", "pinch");
+        continue;
+      }
+      st.active = true;
+      const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+      const gesture = classifyHand(lm, pinchDist);
+      const label = (handedness[s] && handedness[s][0]) ? handedness[s][0].categoryName : "?";
+      drawHand(lm, rect, gesture, label + "(카메라 기준)");
+
+      const midN = { x: (lm[4].x + lm[8].x) / 2, y: (lm[4].y + lm[8].y) / 2 };
+      const p = mapPoint(midN.x, midN.y, rect);
+      cursor.style.left = p.x + "px"; cursor.style.top = p.y + "px";
+      cursor.classList.add("show");
+
+      const isPinch = gesture === "PINCH";
+      cursor.classList.toggle("pinch", isPinch);
+      if (isPinch && !st.wasPinch) {
+        spawnRipple(p.x, p.y);
+        simulateTap(p.x, p.y);
+      }
+      st.wasPinch = isPinch;
+
+      const pinchPct = Math.max(0, Math.min(100, (1 - pinchDist / 0.25) * 100));
+      panelHtml += `<div class="hand">
+        Hand ${s + 1}: ${label}(카메라 기준)<br>
+        제스처: <span class="g">${gesture}</span><br>
+        pinch 거리: ${pinchDist.toFixed(3)}
+        <div class="bar"><i style="width:${pinchPct.toFixed(0)}%"></i></div>
+      </div>`;
+    }
+    handsPanel.innerHTML = panelHtml || "감지된 손 없음";
+  } catch (e) { /* 워밍업 프레임 무시 */ }
+  busy = false;
+}
+
+const startEl = document.getElementById("start");
+const startErr = document.getElementById("start-err");
+let starting = false;
+startEl.addEventListener("click", async () => {
+  if (starting) return;
+  starting = true;
+  try {
+    await initCamera();
+    await initTracker();
+    startEl.classList.add("hidden");
+    requestAnimationFrame(frame);
+  } catch (err) {
+    console.error(err);
+    startErr.textContent = "카메라 또는 모델을 불러오지 못했습니다: " + err.message;
+    starting = false;
+  }
+});
+
+/* ================= 도형/별자리 미리보기 =================
+   index.html의 "큰 별로 만들 수 있는 도형" 라이브러리를 그대로 옮겨와서, 카메라로
+   직접 손짓을 해보지 않아도 버튼 한 번으로 완성된 모습을 바로 볼 수 있게 한다. */
+function heartVerts() {
+  const v = [];
+  for (let i = 0; i < 16; i++) {
+    const t = (i / 16) * Math.PI * 2;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+    v.push({ x: x / 17, y: (y / 17) * 0.92 });
+  }
+  return v;
+}
+function starVerts() {
+  const v = [];
+  for (let i = 0; i < 10; i++) {
+    const ang = -Math.PI / 2 + i * (Math.PI / 5);
+    const r = i % 2 === 0 ? 1 : 0.42;
+    v.push({ x: Math.cos(ang) * r, y: Math.sin(ang) * r });
+  }
+  return v;
+}
+function sunVerts() {
+  const v = [];
+  for (let i = 0; i < 16; i++) {
+    const ang = -Math.PI / 2 + i * (Math.PI / 8);
+    const r = i % 2 === 0 ? 0.95 : 0.55;
+    v.push({ x: Math.cos(ang) * r, y: Math.sin(ang) * r });
+  }
+  return v;
+}
+function flowerVerts() {
+  const v = [], k = 5, n = 20;
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI;
+    const r = Math.cos(k * t);
+    v.push({ x: Math.cos(t) * r, y: Math.sin(t) * r });
+  }
+  return v;
+}
+function moonVerts() {
+  const v = [], n = 10;
+  for (let i = 0; i < n; i++) {
+    const t = -Math.PI * 0.7 + (i / (n - 1)) * Math.PI * 1.4;
+    v.push({ x: Math.cos(t), y: Math.sin(t) });
+  }
+  return v;
+}
+function poopVerts() {
+  return [
+    { x: -0.8, y: 0.9 }, { x: -0.55, y: 0.55 }, { x: -0.85, y: 0.35 }, { x: -0.6, y: 0.05 },
+    { x: -0.9, y: -0.15 }, { x: -0.55, y: -0.5 }, { x: -0.15, y: -0.75 }, { x: 0.25, y: -0.85 },
+    { x: 0.65, y: -0.7 }, { x: 0.9, y: -0.4 }, { x: 0.7, y: -0.05 }, { x: 0.9, y: 0.25 },
+    { x: 0.55, y: 0.5 }, { x: 0.75, y: 0.8 }, { x: 0.35, y: 0.95 }, { x: 0, y: 0.75 },
+    { x: -0.35, y: 1.0 },
+  ];
+}
+// 출처: Tabler Icons "cat" (MIT License, github.com/tabler/tabler-icons) 아이콘의
+// 얼굴 윤곽 패스를 좌표 샘플링해서 옮김 — 뾰족한 두 귀 + 둥근 턱선의 실제 고양이 실루엣
+function catVerts() {
+  return [
+    { x: 0.675, y: -0.577 }, { x: 0.675, y: 0.299 }, { x: 0.641, y: 0.516 }, { x: 0.541, y: 0.711 },
+    { x: 0.386, y: 0.866 }, { x: 0.191, y: 0.965 }, { x: -0.025, y: 1 }, { x: -0.242, y: 0.965 },
+    { x: -0.437, y: 0.866 }, { x: -0.592, y: 0.711 }, { x: -0.692, y: 0.516 }, { x: -0.726, y: 0.299 },
+    { x: -0.726, y: -0.577 }, { x: -0.426, y: -0.276 }, { x: -0.381, y: -0.305 }, { x: -0.334, y: -0.33 },
+    { x: -0.285, y: -0.352 }, { x: -0.235, y: -0.37 }, { x: -0.184, y: -0.384 }, { x: -0.132, y: -0.394 },
+    { x: -0.079, y: -0.4 }, { x: -0.025, y: -0.402 }, { x: 0.032, y: -0.399 }, { x: 0.088, y: -0.392 },
+    { x: 0.143, y: -0.381 }, { x: 0.196, y: -0.366 }, { x: 0.247, y: -0.346 }, { x: 0.297, y: -0.323 },
+    { x: 0.344, y: -0.296 }, { x: 0.389, y: -0.266 },
+  ];
+}
+function fishVerts() {
+  return [
+    { x: -0.9, y: 0 }, { x: -0.6, y: 0.35 }, { x: -0.1, y: 0.45 }, { x: 0.35, y: 0.3 },
+    { x: 0.55, y: 0.5 }, { x: 0.9, y: 0.3 }, { x: 0.6, y: 0 }, { x: 0.9, y: -0.3 },
+    { x: 0.55, y: -0.5 }, { x: 0.35, y: -0.3 }, { x: -0.1, y: -0.45 }, { x: -0.6, y: -0.35 },
+  ];
+}
+function carVerts() {
+  return [
+    { x: -0.95, y: -0.2 }, { x: -0.85, y: -0.05 }, { x: -0.55, y: 0.05 }, { x: -0.35, y: 0.35 },
+    { x: 0.15, y: 0.35 }, { x: 0.35, y: 0.05 }, { x: 0.85, y: -0.05 }, { x: 0.95, y: -0.2 },
+    { x: 0.7, y: -0.2 }, { x: 0.55, y: -0.4 }, { x: 0.25, y: -0.4 }, { x: 0.1, y: -0.2 },
+    { x: -0.1, y: -0.2 }, { x: -0.25, y: -0.4 }, { x: -0.55, y: -0.4 }, { x: -0.7, y: -0.2 },
+  ];
+}
+function houseVerts() {
+  return [
+    { x: -0.7, y: -0.8 }, { x: -0.7, y: 0.1 }, { x: -1, y: 0.1 }, { x: 0, y: 0.9 },
+    { x: 1, y: 0.1 }, { x: 0.7, y: 0.1 }, { x: 0.7, y: -0.8 },
+  ];
+}
+function treeVerts() {
+  const v = [], n = 14;
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI * 2;
+    v.push({ x: Math.cos(t) * 0.75, y: 0.15 + Math.sin(t) * 0.65 });
+  }
+  v.push({ x: -0.15, y: -0.5 }, { x: -0.15, y: -1 }, { x: 0.15, y: -1 }, { x: 0.15, y: -0.5 });
+  return v;
+}
+function umbrellaVerts() {
+  const v = [], n = 8;
+  for (let i = 0; i <= n; i++) {
+    const t = Math.PI + (i / n) * Math.PI;
+    v.push({ x: Math.cos(t) * 0.95, y: Math.sin(t) * 0.55 + 0.1 });
+  }
+  v.push({ x: 0, y: 0.1 }, { x: 0, y: -0.9 }, { x: 0.2, y: -1 });
+  return v;
+}
+function butterflyVerts() {
+  const v = [], n = 24;
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI * 2;
+    const scale = 1 / (1 + Math.pow(Math.sin(t), 2));
+    v.push({ x: Math.cos(t) * scale, y: Math.sin(t) * Math.cos(t) * scale * 1.3 });
+  }
+  return v;
+}
+// ---- 실제 별자리 4개는 직접 만든 좌표 대신 d3-celestial(오픈소스 별자리 지도
+// 프로젝트, github.com/ofrohn/d3-celestial)의 실제 항성 적경/적위 데이터를 그대로
+// 옮겨왔다. 여러 개의 끊어진 선(path)으로 이뤄져 있어 index.html과 동일하게
+// pathList 구조로 렌더링한다. ----
+function cassiopeiaPaths() {
+  return [[
+    { x: -0.878, y: 0.478 }, { x: -0.405, y: 0.023 }, { x: 0.076, y: 0.087 },
+    { x: 0.344, y: -0.467 }, { x: 0.863, y: -0.121 },
+  ]];
+}
+function orionPaths() {
+  return [
+    [{ x: -0.598, y: 0.49 }, { x: -0.405, y: 0.815 }, { x: -0.544, y: 0.807 }, { x: -0.662, y: 0.457 },
+     { x: -0.522, y: 0.188 }, { x: -0.416, y: 0.056 }, { x: 0.024, y: -0.007 }, { x: 0.467, y: 0.217 }],
+    [{ x: 0.413, y: -0.28 }, { x: 0.476, y: -0.237 }, { x: 0.521, y: -0.051 }, { x: 0.541, y: 0.029 },
+     { x: 0.53, y: 0.144 }, { x: 0.467, y: 0.217 }, { x: 0.445, y: 0.416 }, { x: 0.325, y: 0.527 }, { x: 0.25, y: 0.539 }],
+    [{ x: 0.179, y: -0.865 }, { x: 0.033, y: -0.523 }, { x: -0.077, y: -0.399 }, { x: 0.024, y: -0.007 },
+     { x: -0.123, y: 0.205 }, { x: -0.416, y: 0.056 }, { x: -0.205, y: -0.496 }, { x: -0.308, y: -0.952 }],
+    [{ x: -0.205, y: -0.496 }, { x: -0.138, y: -0.452 }, { x: -0.077, y: -0.399 }],
+  ];
+}
+function ariesPaths() {
+  return [[
+    { x: -0.891, y: 0.455 }, { x: 0.096, y: 0.076 }, { x: 0.385, y: -0.19 }, { x: 0.41, y: -0.341 },
+  ]];
+}
+function ursaMajorPaths() {
+  return [
+    [{ x: -0.451, y: 0.209 }, { x: -0.027, y: 0.388 }, { x: -0.016, y: 0.184 }, { x: -0.323, y: 0.082 },
+     { x: -0.451, y: 0.209 }, { x: -0.68, y: 0.168 }, { x: -0.857, y: 0.129 }, { x: -0.996, y: -0.085 }],
+    [{ x: -0.323, y: 0.082 }, { x: -0.277, y: -0.143 }, { x: -0.114, y: -0.703 }, { x: -0.112, y: -0.762 }],
+    [{ x: -0.277, y: -0.143 }, { x: -0.062, y: -0.268 }, { x: 0.218, y: -0.383 }],
+    [{ x: -0.062, y: -0.268 }, { x: 0.249, y: -0.329 }],
+    [{ x: -0.027, y: 0.388 }, { x: 0.519, y: 0.438 }, { x: 0.882, y: 0.349 }, { x: 0.404, y: 0.285 }, { x: -0.016, y: 0.184 }],
+    [{ x: -0.016, y: 0.184 }, { x: 0.397, y: 0.096 }, { x: 0.511, y: 0.005 }, { x: 0.71, y: -0.133 }],
+    [{ x: 0.684, y: -0.167 }, { x: 0.511, y: 0.005 }],
+  ];
+}
+// 별자리 뒤에 은은히 보이는 인물/동물 삽화 (index.html과 동일한 데이터)
+function hunterIllustration() {
+  return [
+    { x: -0.13, y: 0.95 }, { x: 0.13, y: 0.95 }, { x: 0.22, y: 0.75 }, { x: 0.5, y: 0.68 },
+    { x: 0.68, y: 0.92 }, { x: 0.55, y: 0.55 }, { x: 0.28, y: 0.4 }, { x: 0.24, y: 0.02 },
+    { x: 0.52, y: -0.5 }, { x: 0.6, y: -0.95 }, { x: 0.5, y: -0.9 }, { x: 0.13, y: -0.3 },
+    { x: 0, y: -0.12 }, { x: -0.13, y: -0.3 }, { x: -0.5, y: -0.9 }, { x: -0.6, y: -0.95 },
+    { x: -0.52, y: -0.5 }, { x: -0.24, y: 0.02 }, { x: -0.28, y: 0.4 }, { x: -0.6, y: 0.58 },
+    { x: -0.68, y: 0.85 }, { x: -0.22, y: 0.75 },
+  ];
+}
+function bearIllustration() {
+  return [
+    { x: -1.0, y: -0.15 }, { x: -0.88, y: 0.05 }, { x: -0.78, y: 0.25 }, { x: -0.68, y: 0.15 },
+    { x: -0.55, y: 0.3 }, { x: -0.2, y: 0.5 }, { x: 0.3, y: 0.35 }, { x: 0.6, y: 0.15 },
+    { x: 0.7, y: -0.15 }, { x: 0.55, y: -0.5 }, { x: 0.4, y: -0.65 }, { x: 0.1, y: -0.5 },
+    { x: -0.3, y: -0.45 }, { x: -0.6, y: -0.55 }, { x: -0.75, y: -0.5 }, { x: -0.85, y: -0.35 },
+  ];
+}
+function queenIllustration() {
+  return [
+    { x: 0, y: 0.95 }, { x: -0.12, y: 0.8 }, { x: 0.12, y: 0.8 }, { x: 0.22, y: 0.6 },
+    { x: 0.55, y: 0.75 }, { x: 0.4, y: 0.5 }, { x: 0.35, y: 0.1 }, { x: 0.55, y: -0.15 },
+    { x: 0.5, y: -0.6 }, { x: 0.2, y: -0.65 }, { x: -0.2, y: -0.65 }, { x: -0.5, y: -0.6 },
+    { x: -0.55, y: -0.15 }, { x: -0.35, y: 0.1 }, { x: -0.4, y: 0.5 }, { x: -0.55, y: 0.7 },
+    { x: -0.22, y: 0.6 },
+  ];
+}
+function ramIllustration() {
+  return [
+    { x: -0.9, y: -0.1 }, { x: -0.75, y: 0.05 }, { x: -0.65, y: 0.25 }, { x: -0.5, y: 0.45 },
+    { x: -0.35, y: 0.65 }, { x: -0.45, y: 0.55 }, { x: -0.55, y: 0.35 }, { x: -0.4, y: 0.2 },
+    { x: 0, y: 0.35 }, { x: 0.4, y: 0.3 }, { x: 0.6, y: 0.1 }, { x: 0.5, y: -0.3 },
+    { x: 0.4, y: -0.65 }, { x: 0.1, y: -0.55 }, { x: -0.3, y: -0.6 }, { x: -0.4, y: -0.65 },
+    { x: -0.6, y: -0.3 },
+  ];
+}
+const SHAPE_LIBRARY = [
+  { name: "HEART", verts: heartVerts(), closed: true },
+  { name: "STAR", verts: starVerts(), closed: true },
+  { name: "SUN", verts: sunVerts(), closed: true },
+  { name: "FLOWER", verts: flowerVerts(), closed: true },
+  { name: "MOON", verts: moonVerts(), closed: false },
+  { name: "POOP", verts: poopVerts(), closed: true },
+  { name: "CAT", verts: catVerts(), closed: true },
+  { name: "FISH", verts: fishVerts(), closed: true },
+  { name: "CAR", verts: carVerts(), closed: true },
+  { name: "HOUSE", verts: houseVerts(), closed: true },
+  { name: "TREE", verts: treeVerts(), closed: true },
+  { name: "UMBRELLA", verts: umbrellaVerts(), closed: false },
+  { name: "BUTTERFLY", verts: butterflyVerts(), closed: true },
+  { name: "URSA MAJOR", paths: ursaMajorPaths(), illustration: bearIllustration() },
+  { name: "CASSIOPEIA", paths: cassiopeiaPaths(), illustration: queenIllustration() },
+  { name: "ORION", paths: orionPaths(), illustration: hunterIllustration() },
+  { name: "ARIES", paths: ariesPaths(), illustration: ramIllustration() },
+];
+function centroidOf(points) {
+  let cx = 0, cy = 0;
+  for (const p of points) { cx += p.x; cy += p.y; }
+  return { x: cx / points.length, y: cy / points.length };
+}
+function maxRadiusFrom(points, c) {
+  let m = 1e-6;
+  for (const p of points) m = Math.max(m, Math.hypot(p.x - c.x, p.y - c.y));
+  return m;
+}
+for (const s of SHAPE_LIBRARY) {
+  s.pathList = s.paths ? s.paths.map((p) => ({ pts: p, closed: false })) : [{ pts: s.verts, closed: !!s.closed }];
+  const flat = s.pathList.flatMap((p) => p.pts);
+  s.centroid = centroidOf(flat);
+  s.maxR = maxRadiusFrom(flat, s.centroid);
+}
+
+const spCanvas = document.getElementById("sp-canvas");
+const spCtx = spCanvas.getContext("2d");
+function spDot(x, y, size, alpha) {
+  spCtx.beginPath();
+  spCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+  spCtx.shadowColor = "#ffffff";
+  spCtx.shadowBlur = size * 2.4;
+  spCtx.arc(x, y, size, 0, Math.PI * 2);
+  spCtx.fill();
+}
+function drawShapePreview(shape) {
+  const W = spCanvas.width, H = spCanvas.height, cx = W / 2, cy = H / 2, R = 150;
+  spCtx.clearRect(0, 0, W, H);
+  spCtx.fillStyle = "#0d0b1a";
+  spCtx.fillRect(0, 0, W, H);
+
+  if (shape.illustration) {
+    const illR = R * 1.7;
+    const illVerts = shape.illustration.map((v) => ({ x: cx + v.x * illR, y: cy + v.y * illR }));
+    for (let i = 0; i < illVerts.length; i++) {
+      const a = illVerts[i], b = illVerts[(i + 1) % illVerts.length];
+      const dist = Math.hypot(b.x - a.x, b.y - a.y);
+      const steps = Math.max(2, Math.round(dist / 9));
+      for (let k = 0; k < steps; k++) {
+        const t = k / steps;
+        spDot(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 2.1, 0.5);
+      }
+    }
+  }
+
+  const c = shape.centroid, mr = shape.maxR;
+  const worldPaths = shape.pathList.map((p) => ({
+    pts: p.pts.map((v) => ({ x: cx + ((v.x - c.x) / mr) * R, y: cy + ((v.y - c.y) / mr) * R })),
+    closed: p.closed,
+  }));
+  for (const path of worldPaths) {
+    const verts = path.pts;
+    const segCount = path.closed ? verts.length : verts.length - 1;
+    for (let i = 0; i < segCount; i++) {
+      const a = verts[i], b = verts[(i + 1) % verts.length];
+      const dist = Math.hypot(b.x - a.x, b.y - a.y);
+      const steps = Math.max(2, Math.round(dist / 10));
+      for (let k = 1; k < steps; k++) {
+        const t = k / steps;
+        spDot(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, 2.4, 0.9);
+      }
+    }
+    for (const v of verts) spDot(v.x, v.y, 5, 1); // 실제 "큰 별"이 놓일 꼭짓점
+  }
+}
+
+const spGrid = document.getElementById("sp-grid");
+const spOverlay = document.getElementById("shape-preview");
+const spNameEl = document.getElementById("sp-name");
+SHAPE_LIBRARY.forEach((shape) => {
+  const btn = document.createElement("button");
+  btn.textContent = shape.name;
+  btn.addEventListener("click", () => {
+    drawShapePreview(shape);
+    spNameEl.textContent = shape.name;
+    spOverlay.classList.add("show");
+  });
+  spGrid.appendChild(btn);
+});
+document.getElementById("sp-close").addEventListener("click", () => spOverlay.classList.remove("show"));
+spOverlay.addEventListener("click", (e) => { if (e.target === spOverlay) spOverlay.classList.remove("show"); });
+</script>
+</body>
+</html>
