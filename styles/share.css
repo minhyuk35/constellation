@@ -1,0 +1,101 @@
+@font-face {
+  font-family: Batang;
+  src: local('Batang'), local('BatangChe');
+}
+:root {
+  color-scheme: dark;
+  --ink: #cddbe6;
+  --dim: #7f93a5;
+  --line: #b7d0e226;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #05040d;
+  color: var(--ink);
+  font: 15px/1.7 'Segoe UI', 'Malgun Gothic', sans-serif;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px 48px;
+}
+.share-card {
+  width: min(420px, 100%);
+  text-align: center;
+}
+.share-brand {
+  font-family: Batang, serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  margin-bottom: 18px;
+}
+.share-brand b {
+  color: var(--ink);
+  font-weight: 400;
+}
+#share-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  box-shadow: 0 30px 90px #000a;
+  display: block;
+}
+.share-title {
+  margin-top: 22px;
+}
+.share-title strong {
+  font-family: Batang, serif;
+  font-size: 22px;
+  font-weight: 400;
+  margin-right: 8px;
+}
+.share-title span {
+  font-size: 12px;
+  color: var(--dim);
+  letter-spacing: 0.5px;
+}
+#share-description {
+  font-size: 13px;
+  color: #a9bccb;
+  margin: 10px 0 0;
+}
+#share-download {
+  margin-top: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 28px;
+  border-radius: 999px;
+  border: 1px solid #cfe3ee55;
+  background: #dcecf3;
+  color: #0b1520;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+#share-download:active {
+  transform: translateY(1px);
+}
+.share-note {
+  margin-top: 16px;
+  font-size: 10.5px;
+  line-height: 1.9;
+  color: #64798c;
+}
+#share-empty {
+  padding: 60px 20px;
+  color: var(--dim);
+  font-size: 13px;
+  line-height: 2;
+}
+[hidden] {
+  display: none !important;
+}

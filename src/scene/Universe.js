@@ -46,6 +46,7 @@ export class Universe {
     this.makeStars();
     this.makeDrawing();
     this.makeArt();
+    this.makePresence();
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
   }
@@ -361,6 +362,7 @@ export class Universe {
       if (document.hidden) return;
       if (!this.reducedMotion) this.clock += dt;
       onFrame?.(dt, now);
+      this.tickPresence(dt);
       this.skyMaterial.uniforms.uTime.value = this.clock;
       for (const obj of [this.backgroundStars, this.drawingStars])
         obj.material.uniforms.uTime.value = this.clock;
@@ -387,6 +389,169 @@ export class Universe {
       }
       this.renderer.render(this.scene, this.camera);
     });
+  }
+  // A small, separate layer of ambient particles that visitors never edit
+  // directly. It gently gathers toward people the pose tracker detects
+  // (PRESENCE_FREE), permanently marks a footpath of stars for anyone who
+  // simply walked through the space without gesturing (PRESENCE_TRAIL), and
+  // briefly borrows a batch of its particles to trace a held pose
+  // (PRESENCE_SILHOUETTE). Kept deliberately small (see CONFIG.presenceCount)
+  // so multi-visitor tracking never competes with the interactive star budget.
+  makePresence() {
+    const n = CONFIG.presenceCount;
+    const positions = new Float32Array(n * 3),
+      sizes = new Float32Array(n),
+      phases = new Float32Array(n),
+      colors = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      positions.set(
+        [(Math.random() - 0.5) * this.width, (Math.random() - 0.5) * this.height, -80 - i * 0.4],
+        i * 3,
+      );
+      sizes[i] = 3;
+      phases[i] = Math.random() * Math.PI * 2;
+      colors.set([0.78, 0.86, 1], i * 3);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+    geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+    this.presenceStars = new THREE.Points(geometry, this.pointMaterial(0.5, 0.7));
+    this.presenceStars.frustumCulled = false;
+    this.scene.add(this.presenceStars);
+    this.presenceVelocity = new Float32Array(n * 2);
+    // 0 = free-drifting, 1 = a passer-by's permanent footstep, 2 = briefly on loan to a silhouette.
+    this.presenceState = new Uint8Array(n);
+    this.presenceCursor = 0;
+    this.presencePeople = [];
+    this.bridgeLines = new THREE.LineSegments(
+      new THREE.BufferGeometry(),
+      new THREE.LineBasicMaterial({
+        color: 0x9fc7ff,
+        transparent: true,
+        opacity: 0.4,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    this.bridgeLines.frustumCulled = false;
+    this.scene.add(this.bridgeLines);
+    this.flashLayer = document.createElement('div');
+    this.flashLayer.className = 'universe-flash';
+    this.container.append(this.flashLayer);
+  }
+  // Presence updates arrive at the pose tracker's cadence (a handful of times a
+  // second); the drift itself is interpolated every rendered frame so it stays smooth.
+  setPresence(people) {
+    this.presencePeople = people;
+  }
+  setBridges(pairs) {
+    if (!this.bridgeLines) return;
+    if (!pairs.length) {
+      this.bridgeLines.geometry.setDrawRange(0, 0);
+      return;
+    }
+    const positions = new Float32Array(pairs.length * 6);
+    pairs.forEach(({ a, b }, i) => {
+      const pa = this.toWorld(a),
+        pb = this.toWorld(b);
+      positions.set([pa.x, pa.y, 0, pb.x, pb.y, 0], i * 6);
+    });
+    this.bridgeLines.geometry.dispose();
+    this.bridgeLines.geometry = new THREE.BufferGeometry();
+    this.bridgeLines.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    this.bridgeLines.geometry.setDrawRange(0, pairs.length * 2);
+  }
+  // Recycles the oldest presence slot into a permanent, gently glowing footstep.
+  spawnTrail(point) {
+    if (!this.presenceStars) return;
+    const attr = this.presenceStars.geometry.attributes;
+    const i = this.presenceCursor;
+    this.presenceCursor = (this.presenceCursor + 1) % attr.position.count;
+    const w = this.toWorld(point);
+    attr.position.setXYZ(i, w.x, w.y, -30);
+    attr.aSize.setX(i, 5);
+    attr.aColor.setXYZ(i, 0.9, 0.95, 1);
+    this.presenceState[i] = 1;
+    attr.position.needsUpdate = true;
+    attr.aSize.needsUpdate = true;
+    attr.aColor.needsUpdate = true;
+  }
+  // Borrows a batch of presence slots to trace a held pose's keypoints, then
+  // releases them back to free drift once CONFIG.poseSilhouetteDuration elapses.
+  revealSilhouette(points) {
+    if (!this.presenceStars || !points?.length || this.reducedMotion) return;
+    const n = this.presenceStars.geometry.attributes.position.count;
+    const count = Math.min(points.length, n);
+    const slots = [];
+    for (let i = 0; i < count; i++) {
+      const slot = (this.presenceCursor + i) % n;
+      slots.push(slot);
+      this.presenceState[slot] = 2;
+    }
+    this.presenceCursor = (this.presenceCursor + count) % n;
+    this.silhouette = { points: points.slice(0, count), slots, until: this.clock + CONFIG.poseSilhouetteDuration };
+    this.flashLayer.classList.remove('flash-active');
+    void this.flashLayer.offsetWidth;
+    this.flashLayer.classList.add('flash-active');
+  }
+  tickPresence(dt) {
+    if (!this.presenceStars) return;
+    const attr = this.presenceStars.geometry.attributes;
+    const n = attr.position.count;
+    if (this.silhouette) {
+      const t = 1 - Math.max(0, (this.silhouette.until - this.clock) / CONFIG.poseSilhouetteDuration);
+      this.silhouette.slots.forEach((slot, i) => {
+        const target = this.toWorld(this.silhouette.points[i]);
+        const x = attr.position.getX(slot),
+          y = attr.position.getY(slot);
+        const ease = Math.min(1, dt * 4);
+        attr.position.setXYZ(slot, x + (target.x - x) * ease, y + (target.y - y) * ease, 6);
+        attr.aSize.setX(slot, 7);
+        attr.aColor.setXYZ(slot, 1, 1, 1);
+      });
+      if (this.clock >= this.silhouette.until) {
+        for (const slot of this.silhouette.slots) this.presenceState[slot] = 0;
+        this.silhouette = null;
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      if (this.presenceState[i]) continue;
+      let x = attr.position.getX(i),
+        y = attr.position.getY(i);
+      let vx = this.presenceVelocity[i * 2],
+        vy = this.presenceVelocity[i * 2 + 1];
+      let fx = (Math.random() - 0.5) * 4,
+        fy = (Math.random() - 0.5) * 4;
+      for (const person of this.presencePeople) {
+        const w = this.toWorld(person);
+        const dx = w.x - x,
+          dy = w.y - y;
+        const d = Math.hypot(dx, dy) + 60;
+        const pull = (person.quiet ? 900 : 220) / d;
+        fx += (dx / d) * pull;
+        fy += (dy / d) * pull;
+      }
+      vx = vx * 0.9 + fx * dt;
+      vy = vy * 0.9 + fy * dt;
+      x += vx * dt;
+      y += vy * dt;
+      const halfW = this.width / 2 + 60,
+        halfH = this.height / 2 + 60;
+      if (x < -halfW) x = halfW;
+      if (x > halfW) x = -halfW;
+      if (y < -halfH) y = halfH;
+      if (y > halfH) y = -halfH;
+      this.presenceVelocity[i * 2] = vx;
+      this.presenceVelocity[i * 2 + 1] = vy;
+      attr.position.setXYZ(i, x, y, -80 - (i % 40) * 0.4);
+      attr.aSize.setX(i, 3);
+      attr.aColor.setXYZ(i, 0.78, 0.86, 1);
+    }
+    attr.position.needsUpdate = true;
+    attr.aSize.needsUpdate = true;
+    attr.aColor.needsUpdate = true;
   }
   async capture(title) {
     this.renderer.render(this.scene, this.camera);

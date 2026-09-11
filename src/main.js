@@ -2,16 +2,19 @@ import { Universe } from './scene/Universe.js';
 import { CanvasModel } from './interaction/CanvasModel.js';
 import { PointerController } from './interaction/PointerController.js';
 import { HandController } from './interaction/HandController.js';
+import { PoseController } from './interaction/PoseController.js';
 import { Soundscape } from './audio/Soundscape.js';
 import { Interface, $ } from './ui/Interface.js';
 import { SHAPES, SHAPE_MAP } from './data/shapes.js';
 import { matchShapes, normalize } from './recognition/matcher.js';
 import { saveArchive } from './data/archive.js';
+import { encodeShare } from './data/share.js';
 import { CONFIG } from './config.js';
+import QRCode from 'qrcode';
 
 const model = new CanvasModel();
 const sound = new Soundscape();
-let universe, pointer, hand, ui, recognition;
+let universe, pointer, hand, pose, ui, recognition;
 let active = false,
   autoRecognize = true,
   currentMatch = null,
@@ -110,6 +113,7 @@ function loadPreset(shape, intro = false) {
 async function toggleCamera() {
   if (hand.active) {
     hand.stop();
+    pose.stop();
     return;
   }
   ui.cameraStatus('loading');
@@ -117,6 +121,9 @@ async function toggleCamera() {
     await hand.start();
     start();
     ui.toast('손을 보여주세요. 엄지와 검지를 맞대면 별을 잡을 수 있어요.');
+    // Multi-visitor pose tracking is a bonus layer on the same camera feed;
+    // its failure (e.g. no WebGL) must never block hand tracking from working.
+    pose.start().catch((error) => console.warn('Pose tracking unavailable:', error));
   } catch (error) {
     ui.cameraStatus('off');
     ui.toast(error.message);
@@ -153,6 +160,32 @@ async function saveImage() {
     ui.toast('지금의 우주를 이미지로 저장했습니다.');
   } catch {
     ui.toast('이미지를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+  }
+}
+async function showQrCode() {
+  if (model.stars.length < CONFIG.minStars) {
+    ui.toast('별을 4개 이상 놓으면 QR로 공유할 수 있어요.');
+    return;
+  }
+  const payload = encodeShare({
+    stars: model.stars,
+    edges: visibleEdges(),
+    shapeId: currentMatch?.shape.id || null,
+  });
+  if (!payload) {
+    ui.toast('QR 코드를 만들지 못했어요.');
+    return;
+  }
+  const shareUrl = new URL(`share.html#d=${payload}`, location.href).toString();
+  try {
+    const dataUrl = await QRCode.toDataURL(shareUrl, {
+      margin: 1,
+      width: 480,
+      color: { dark: '#0d0b1aff', light: '#f5f3ffff' },
+    });
+    ui.showQR(dataUrl, shareUrl);
+  } catch {
+    ui.toast('QR 코드를 만들지 못했어요.');
   }
 }
 function restore(entry) {
@@ -209,6 +242,7 @@ try {
       loadPreset(SHAPES[previewIndex], !active);
     },
     save: saveImage,
+    qr: showQrCode,
     preset: (shape) => loadPreset(shape),
     restore,
     mode: (mode) => pointer.setMode(mode),
@@ -269,6 +303,12 @@ try {
         ? '집기 · 이동 / 주먹 1초 · 별 생성 / 손 펼치기 · 빛 확산'
         : '손 전체가 카메라에 보이도록 해주세요';
     },
+  });
+  pose = new PoseController($('camera-video'), {
+    presence: (people) => universe.setPresence(people),
+    bridges: (pairs) => universe.setBridges(pairs),
+    trail: (point) => universe.spawnTrail(point),
+    silhouette: (points) => universe.revealSilhouette(points),
   });
   recognition = new Worker(new URL('./recognition/recognition.worker.js', import.meta.url), {
     type: 'module',
@@ -331,6 +371,7 @@ try {
   let lastHint = '';
   universe.start((dt, now) => {
     hand.tick(now);
+    pose.tick(now);
     if (
       active &&
       autoRecognize &&
@@ -387,6 +428,7 @@ try {
     universe.dispose();
     recognition?.terminate();
     sound.dispose();
+    pose.stop();
   });
 } catch (error) {
   console.error('Constellation initialization failed:', error);

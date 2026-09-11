@@ -22,6 +22,7 @@ import {
   Grab,
   Camera,
   BookOpen,
+  QrCode,
 } from 'lucide';
 import { SHAPES, SHAPE_MAP } from '../data/shapes.js';
 import { readArchive } from '../data/archive.js';
@@ -49,6 +50,7 @@ const icons = {
   HandFist: Grab,
   Camera,
   BookOpen,
+  QrCode,
 };
 export const $ = (id) => document.getElementById(id);
 export const refreshIcons = () => createIcons({ icons, attrs: { 'stroke-width': 1.5 } });
@@ -74,6 +76,7 @@ export class Interface {
     click('interpret-button', actions.interpret);
     click('next-preview', actions.next);
     click('save-button', actions.save);
+    click('qr-button', actions.qr);
     click('immersive-button', () => this.immersive(true));
     click('exit-immersive', () => this.immersive(false));
     document
@@ -190,6 +193,11 @@ export class Interface {
       : `형태 유사도 ${match.similarity}% · ${s.kind}`;
     $('scene-status').textContent = example ? '별을 기다리는 중' : `${s.name} 발견`;
     $('next-preview').hidden = !example;
+  }
+  showQR(dataUrl, url) {
+    $('qr-image').src = dataUrl;
+    $('qr-link').href = url;
+    this.open('qr-dialog');
   }
   clearResult() {
     $('discovery').hidden = true;

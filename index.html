@@ -163,6 +163,7 @@
         </div>
         <div class="footer-right">
           <button id="save-button"><i data-lucide="download"></i><span>순간 저장</span></button
+          ><button id="qr-button"><i data-lucide="qr-code"></i><span>QR 공유</span></button
           ><button id="immersive-button" title="몰입 모드 (H)">
             <i data-lucide="maximize"></i><span>몰입하기</span>
           </button>
@@ -285,6 +286,25 @@
       </button>
       <p class="small-note" id="camera-detail">
         카메라를 켜면 브라우저에서 사용 권한을 요청합니다.
+      </p>
+    </dialog>
+    <dialog id="qr-dialog" class="panel-dialog qr-dialog">
+      <div class="dialog-heading">
+        <div>
+          <div class="eyebrow">TAKE IT WITH YOU</div>
+          <h2>지금 이 우주를 스캔하세요</h2>
+        </div>
+        <button class="icon-button close-dialog" aria-label="닫기"><i data-lucide="x"></i></button>
+      </div>
+      <p class="dialog-intro">
+        휴대폰 카메라로 QR을 비추면, 지금 그린 별자리를 개인정보 없이 이미지로 저장할 수 있어요.
+      </p>
+      <div class="qr-frame">
+        <img id="qr-image" alt="별자리 공유 QR 코드" />
+      </div>
+      <p class="small-note">
+        영상이나 이름 없이 별의 위치와 연결선만 전달됩니다.
+        <a id="qr-link" target="_blank" rel="noopener noreferrer">직접 열기</a>
       </p>
     </dialog>
     <dialog id="archive-dialog" class="panel-dialog">
