@@ -419,6 +419,13 @@ try {
     }
     updateDrawing();
   });
+  // Shaking a held star left and right deletes it — the only way to remove a
+  // star while hand-tracking, since there is no Delete key mid-gesture.
+  model.addEventListener('shake-delete', ({ detail }) => {
+    universe.burst(detail.star, 1.2);
+    sound.pop();
+    ui.toast('별을 흔들어 지웠어요. 되돌리기로 복원할 수 있어요.');
+  });
   loadPreset(SHAPES[0], true);
   let lastHint = '';
   let lastSupernovaCheck = 0,

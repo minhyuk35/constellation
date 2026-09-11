@@ -124,6 +124,26 @@ export class Soundscape {
     if (!this.enabled) return;
     for (let i = 0; i < 3; i++) setTimeout(() => this.chime(i * 2), i * 250);
   }
+  // A soft descending "poof" for a star shaken out of existence.
+  pop() {
+    if (!this.enabled) return;
+    const now = this.context.currentTime;
+    const oscillator = this.context.createOscillator(),
+      gain = this.context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(500, now);
+    oscillator.frequency.exponentialRampToValueAtTime(120, now + 0.22);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    oscillator.connect(gain);
+    gain.connect(this.master);
+    oscillator.start(now);
+    oscillator.stop(now + 0.26);
+    oscillator.onended = () => {
+      oscillator.disconnect();
+      gain.disconnect();
+    };
+  }
   // A short filtered-noise click, timed with the held-pose silhouette reveal's
   // screen flash — "클라이맥스 순간 셔터음+화면 플래시로 촬영 타이밍 암시" from the
   // exhibition brief's photo-op ideas. Synthesized rather than a sound asset.

@@ -50,10 +50,13 @@ export class CanvasModel extends EventTarget {
     this.remember();
     this.draggers.add(id);
     this.select(id);
+    if (!this.shakeTracking) this.shakeTracking = new Map();
+    this.shakeTracking.set(id, []);
     return true;
   }
   endDrag(id) {
     this.draggers.delete(id);
+    this.shakeTracking?.delete(id);
     this.lastEdit = performance.now();
     this.changed(false);
   }
@@ -66,6 +69,48 @@ export class CanvasModel extends EventTarget {
     star.x = nx;
     star.y = ny;
     this.changed();
+    this.trackShake(id, nx);
+  }
+  // Two hands can each hold their own star and shake it independently, so
+  // tracking is per-star rather than a single shared buffer. A shake is
+  // several quick left-right reversals covering real horizontal distance in
+  // well under half a second — deliberately more than ordinary hand jitter
+  // while moving a star, so it doesn't trigger by accident.
+  trackShake(id, x) {
+    const samples = this.shakeTracking?.get(id);
+    if (!samples) return;
+    const now = performance.now();
+    samples.push({ x, t: now });
+    while (samples.length && now - samples[0].t > 380) samples.shift();
+    if (samples.length < 5) return;
+    let reversals = 0,
+      path = 0,
+      lastDir = 0;
+    for (let i = 1; i < samples.length; i++) {
+      const dx = samples[i].x - samples[i - 1].x;
+      path += Math.abs(dx);
+      if (Math.abs(dx) < 0.006) continue;
+      const dir = Math.sign(dx);
+      if (lastDir && dir !== lastDir) reversals++;
+      lastDir = dir;
+    }
+    if (reversals >= 3 && path > 0.11) {
+      this.shakeTracking.delete(id);
+      this.deleteShaken(id);
+    }
+  }
+  // Shaking a held star out is the only way to delete one while hand-tracking
+  // (there is no Delete key mid-gesture). Relies on beginDrag()'s remember()
+  // for undo, so "grab, shake, gone" is one undoable step, same as a drag.
+  deleteShaken(id) {
+    const star = this.stars.find((s) => s.id === id);
+    if (!star) return;
+    this.draggers.delete(id);
+    this.stars = this.stars.filter((s) => s.id !== id);
+    this.edges = this.edges.filter((e) => !e.includes(id));
+    if (this.selected === id) this.selected = null;
+    this.changed();
+    this.dispatchEvent(new CustomEvent('shake-delete', { detail: { star } }));
   }
   removeSelected() {
     if (!this.selected || this.dragging) return;

@@ -26,6 +26,7 @@ import {
   Play,
   Square,
   Cpu,
+  ArrowLeftRight,
 } from 'lucide';
 import { SHAPES, SHAPE_MAP } from '../data/shapes.js';
 import { readArchive } from '../data/archive.js';
@@ -57,6 +58,7 @@ const icons = {
   Play,
   Square,
   Cpu,
+  ArrowLeftRight,
 };
 export const $ = (id) => document.getElementById(id);
 export const refreshIcons = () => createIcons({ icons, attrs: { 'stroke-width': 1.5 } });

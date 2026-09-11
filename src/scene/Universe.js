@@ -15,6 +15,10 @@ import { transformPoint } from '../recognition/matcher.js';
 // starts easing back to compensate for a wide placement. See positionArt().
 const ART_SIZE_MULTIPLIER = 2.5;
 const ART_TARGET_PX = 430;
+// Segments drawn per second during the connection reveal — a constant pace
+// regardless of how many segments a shape has, so a simple shape doesn't
+// linger and a complex one doesn't rush past as one blur.
+const SEGMENT_REVEAL_RATE = 5.5;
 
 export class Universe {
   constructor(container, onError) {
@@ -325,9 +329,12 @@ export class Universe {
       for (const index of adjacency.get(node) || []) {
         if (visitedEdges.has(index)) continue;
         visitedEdges.add(index);
-        ordered.push(edges[index]);
         const [a, b] = edges[index];
         const next = a === node ? b : a;
+        // Normalized to [from, to] in walk order, not however the shape data
+        // happened to list the pair — so the growing-line animation always
+        // draws outward from the star just visited, never backward.
+        ordered.push([node, next]);
         if (!visitedNodes.has(next)) {
           visitedNodes.add(next);
           stack.push(next);
@@ -351,24 +358,42 @@ export class Universe {
     attr.aSize.needsUpdate = true;
     attr.aColor.needsUpdate = true;
     this.drawingStars.geometry.setDrawRange(0, this.starData.length);
-    const coords = [];
     const byId = new Map(this.starData.map((p) => [p.id, p]));
+    this.lineSegments = [];
     for (const [a, b] of this.edgeData) {
       if (!byId.has(a) || !byId.has(b)) continue;
-      const p = this.toWorld(byId.get(a)),
-        q = this.toWorld(byId.get(b));
-      coords.push(p.x, p.y, 1, q.x, q.y, 1);
+      this.lineSegments.push({ p: this.toWorld(byId.get(a)), q: this.toWorld(byId.get(b)) });
     }
     this.lines.geometry.dispose();
     this.lines.geometry = new THREE.BufferGeometry();
-    this.lines.geometry.setAttribute('position', new THREE.Float32BufferAttribute(coords, 3));
-    this.lines.geometry.setDrawRange(0, Math.floor(this.edgeData.length * this.reveal) * 2);
+    this.lines.geometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(new Float32Array(this.lineSegments.length * 6), 3),
+    );
+    this.lines.geometry.setDrawRange(0, this.lineSegments.length * 2);
+    this.applyLineReveal();
     const selected = byId.get(this.selected);
     this.selection.visible = !!selected;
     if (selected) {
       const p = this.toWorld(selected);
       this.selection.position.set(p.x, p.y, 4);
     }
+  }
+  // Draws each segment growing from its start star to its end star — a pen
+  // tracing the shape — rather than whole segments blinking in one at a
+  // time. `this.reveal` (0..1) is spread across every segment in order, so
+  // only the current one is ever mid-growth; finished segments hold their
+  // full length and untouched ones stay collapsed to a point (invisible).
+  applyLineReveal() {
+    const attr = this.lines.geometry.attributes.position;
+    if (!attr || !this.lineSegments) return;
+    const progress = this.reveal * this.lineSegments.length;
+    this.lineSegments.forEach(({ p, q }, i) => {
+      const t = Math.max(0, Math.min(1, progress - i));
+      attr.setXYZ(i * 2, p.x, p.y, 1);
+      attr.setXYZ(i * 2 + 1, p.x + (q.x - p.x) * t, p.y + (q.y - p.y) * t, 1);
+    });
+    attr.needsUpdate = true;
   }
 
   showArt(match, coordinateSpace = 'normalized') {
@@ -462,8 +487,11 @@ export class Universe {
       this.artMaterial.uniforms.uTime.value = this.clock;
       this.orbits.visible = this.artFade > 0.05;
       if (this.reveal < 1) {
-        this.reveal = Math.min(1, this.reveal + dt * 0.65);
-        this.lines.geometry.setDrawRange(0, Math.floor(this.edgeData.length * this.reveal) * 2);
+        const segments = this.lineSegments?.length || 1;
+        this.reveal = this.reducedMotion
+          ? 1
+          : Math.min(1, this.reveal + (dt * SEGMENT_REVEAL_RATE) / segments);
+        this.applyLineReveal();
       }
       for (let i = this.bursts.length - 1; i >= 0; i--) {
         const b = this.bursts[i];
