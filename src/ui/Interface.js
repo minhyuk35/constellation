@@ -25,6 +25,7 @@ import {
   QrCode,
   Play,
   Square,
+  Cpu,
 } from 'lucide';
 import { SHAPES, SHAPE_MAP } from '../data/shapes.js';
 import { readArchive } from '../data/archive.js';
@@ -55,6 +56,7 @@ const icons = {
   QrCode,
   Play,
   Square,
+  Cpu,
 };
 export const $ = (id) => document.getElementById(id);
 export const refreshIcons = () => createIcons({ icons, attrs: { 'stroke-width': 1.5 } });
@@ -74,6 +76,7 @@ export class Interface {
     });
     click('archive-play-button', actions.timelapse);
     click('help-button', () => this.open('help-dialog'));
+    click('ai-info-button', () => this.open('ai-info-dialog'));
     click('settings-button', () => this.open('settings-dialog'));
     click('sound-button', actions.sound);
     click('undo-button', actions.undo);

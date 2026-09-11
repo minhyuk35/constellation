@@ -73,6 +73,38 @@ export class Soundscape {
     if (!this.enabled) return;
     for (let i = 0; i < 3; i++) setTimeout(() => this.chime(i * 2), i * 250);
   }
+  // A short filtered-noise click, timed with the held-pose silhouette reveal's
+  // screen flash — "클라이맥스 순간 셔터음+화면 플래시로 촬영 타이밍 암시" from the
+  // exhibition brief's photo-op ideas. Synthesized rather than a sound asset.
+  shutter() {
+    if (!this.enabled) return;
+    const now = this.context.currentTime;
+    const duration = 0.09;
+    const buffer = this.context.createBuffer(
+      1,
+      Math.floor(this.context.sampleRate * duration),
+      this.context.sampleRate,
+    );
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    const filter = this.context.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1800;
+    const gain = this.context.createGain();
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.master);
+    source.start(now);
+    source.onended = () => {
+      source.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+    };
+  }
   dispose() {
     this.voices?.forEach((v) => v.stop());
     this.context?.close();

@@ -42,6 +42,9 @@
           <button class="icon-button" id="help-button" title="조작 방법" aria-label="조작 방법">
             <i data-lucide="circle-help"></i>
           </button>
+          <button class="icon-button" id="ai-info-button" title="AI가 하는 일" aria-label="AI가 하는 일">
+            <i data-lucide="cpu"></i>
+          </button>
           <button class="icon-button" id="settings-button" title="화면 설정" aria-label="화면 설정">
             <i data-lucide="sliders-horizontal"></i>
           </button>
@@ -250,6 +253,44 @@
       <p class="small-note">
         손 전체가 보이도록 카메라에서 적당히 떨어져 주세요. 영상은 저장하거나 전송하지 않습니다. 두
         손을 동시에 사용할 수 있습니다.
+      </p>
+    </dialog>
+    <dialog id="ai-info-dialog" class="panel-dialog">
+      <div class="dialog-heading">
+        <div>
+          <div class="eyebrow">WHAT THE AI ACTUALLY DOES</div>
+          <h2>AI가 하는 일, 사람이 하는 일</h2>
+        </div>
+        <button class="icon-button close-dialog" aria-label="닫기"><i data-lucide="x"></i></button>
+      </div>
+      <p class="dialog-intro">
+        예쁜 화면 뒤에 실제로 어떤 계산이 있는지 숨기지 않습니다. 이 작품은 두 종류의 기술로
+        나뉩니다.
+      </p>
+      <div class="ai-info-grid">
+        <div class="ai-info-card">
+          <div class="eyebrow">인식 — 진짜 AI</div>
+          <h3>손과 사람을 알아봅니다</h3>
+          <p>
+            학습된 신경망 두 가지가 웹캠 영상에서 21개의 손 관절과 여러 사람의 자세를 실시간으로
+            추정합니다.
+          </p>
+          <p class="ai-info-tech">MediaPipe Hand Landmarker · TensorFlow.js MoveNet MultiPose</p>
+        </div>
+        <div class="ai-info-card">
+          <div class="eyebrow">해석 — 생성 알고리즘</div>
+          <h3>움직임을 별자리로 번역합니다</h3>
+          <p>
+            인식된 좌표를 별의 생성·이동·연결, 등록된 16개 형태와의 기하학적 비교, 잔상·다리 연결
+            같은 화면 연출로 바꾸는 것은 학습된 모델이 아니라 이 프로젝트가 직접 만든 규칙과
+            물리입니다.
+          </p>
+          <p class="ai-info-tech">Three.js 파티클 · 회전/반전 보정 형태 비교 · 커스텀 연출 로직</p>
+        </div>
+      </div>
+      <p class="small-note">
+        카메라 원본 영상은 화면에 표시하거나 저장·전송하지 않고, 기기 안에서만 좌표로 바뀝니다.
+        임의의 사물을 알아보는 범용 이미지 AI나, 실행 중 새 그림을 생성하는 기능은 아닙니다.
       </p>
     </dialog>
     <dialog id="settings-dialog" class="panel-dialog settings-dialog">

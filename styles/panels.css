@@ -259,6 +259,40 @@ select {
   stroke-width: 1;
   color: #b0ccd5;
 }
+.ai-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 6px 0 22px;
+}
+.ai-info-card {
+  padding: 20px;
+  background: #bad9e505;
+  border: 1px solid #a4c8d512;
+  border-radius: 7px;
+}
+.ai-info-card h3 {
+  font-size: 14px;
+  font-weight: 400;
+  color: #d5e3ea;
+  margin: 10px 0 9px;
+}
+.ai-info-card p {
+  font-size: 12px;
+  color: #8c9faf;
+  line-height: 1.8;
+  margin: 0 0 10px;
+}
+.ai-info-tech {
+  font-size: 10px !important;
+  color: #6c8294 !important;
+  letter-spacing: 0.2px;
+}
+@media (max-width: 760px) {
+  .ai-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .qr-dialog {
   max-width: 400px;
   text-align: center;

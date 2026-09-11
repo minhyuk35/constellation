@@ -348,7 +348,10 @@ try {
     presence: (people) => universe.setPresence(people),
     bridges: (pairs) => universe.setBridges(pairs),
     trail: (point) => universe.spawnTrail(point),
-    silhouette: (points) => universe.revealSilhouette(points),
+    silhouette: (points) => {
+      universe.revealSilhouette(points);
+      sound.shutter();
+    },
     state: (state) => {
       poseIntensity = state === 'interact' ? 1 : state === 'approach' ? 0.45 : 0;
     },
