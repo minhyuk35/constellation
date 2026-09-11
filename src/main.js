@@ -90,8 +90,13 @@ function loadPreset(shape, intro = false) {
   }));
   const edges = shape.edges.map(([a, b]) => [stars[a].id, stars[b].id]);
   presetChange = true;
-  model.replace(stars, edges, !intro);
+  // Preset connections are the shape's own suggestion, not something the
+  // visitor drew — kept as inferredEdges so moving a star dissolves them the
+  // same way an auto-recognized match's lines dissolve, instead of the lines
+  // staying pinned to the star as it's dragged.
+  model.replace(stars, [], !intro);
   presetChange = false;
+  inferredEdges = edges;
   const origin = normalize(shape.points).center;
   const match = {
     shape,
@@ -402,6 +407,7 @@ try {
       inferredEdges = [];
       currentMatch = null;
       universe.hideArt();
+      universe.dissolveLines();
       ui.clearResult();
       $('scene-status').textContent = model.stars.length
         ? '당신의 이야기를 그리는 중'

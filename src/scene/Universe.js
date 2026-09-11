@@ -10,6 +10,12 @@ import {
 } from './shaders.js';
 import { transformPoint } from '../recognition/matcher.js';
 
+// How much larger the illustration is than the star shape's own spread, and
+// the constant on-screen size (in CSS pixels) it holds to once the camera
+// starts easing back to compensate for a wide placement. See positionArt().
+const ART_SIZE_MULTIPLIER = 2.5;
+const ART_TARGET_PX = 430;
+
 export class Universe {
   constructor(container, onError) {
     this.container = container;
@@ -40,6 +46,10 @@ export class Universe {
     this.starData = [];
     this.edgeData = [];
     this.reveal = 1;
+    this.lineOpacity = 1;
+    this.lineFadeTarget = 1;
+    this.zoom = 1;
+    this.zoomTarget = 1;
     this.bursts = [];
     this.resize();
     this.makeSky();
@@ -156,12 +166,13 @@ export class Universe {
     this.drawingStars.frustumCulled = false;
     this.drawingStars.renderOrder = 3;
     this.scene.add(this.drawingStars);
+    this.lineBaseOpacity = 0.52;
     this.lines = new THREE.LineSegments(
       new THREE.BufferGeometry(),
       new THREE.LineBasicMaterial({
         color: 0xc0d6ea,
         transparent: true,
-        opacity: 0.52,
+        opacity: this.lineBaseOpacity,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       }),
@@ -246,7 +257,8 @@ export class Universe {
     this.width = this.container.clientWidth;
     this.height = this.container.clientHeight;
     this.camera.aspect = this.width / this.height;
-    this.camera.position.z = this.height / (2 * Math.tan((25 * Math.PI) / 180));
+    this.baseCameraZ = this.height / (2 * Math.tan((25 * Math.PI) / 180));
+    this.camera.position.z = this.baseCameraZ * this.zoom;
     this.camera.updateProjectionMatrix();
     const cap =
       this.quality === 'low' ? 1 : this.quality === 'high' ? 2 : this.width < 760 ? 1.25 : 1.5;
@@ -273,10 +285,59 @@ export class Universe {
   }
   setDrawing(stars, edges, selected = null, reveal = false) {
     this.starData = stars;
-    this.edgeData = edges;
+    // On a fresh reveal, trace the connections outward from the star the
+    // visitor last placed or moved, one continuous direction at a time,
+    // instead of drawing them in whatever order the shape data happens to
+    // list them.
+    this.edgeData = reveal ? this.traceFrom(edges, selected) : edges;
     this.selected = selected;
-    if (reveal) this.reveal = this.reducedMotion ? 1 : 0;
+    if (reveal) {
+      this.reveal = this.reducedMotion ? 1 : 0;
+      this.lineFadeTarget = 1;
+      this.lineOpacity = 1;
+    }
     this.syncDrawing();
+  }
+  // A depth-first walk of the star graph starting at `anchorId` (falling back
+  // to the first star): it fully follows one branch before backtracking to
+  // the next, so a closed shape traces all the way around in a single
+  // direction and a branching one (e.g. Orion) completes one limb before
+  // moving to another, rather than several unrelated segments growing at
+  // once. Any edge the walk can't reach (a separate, disconnected cluster of
+  // stars) is appended at the end so nothing goes undrawn.
+  traceFrom(edges, anchorId) {
+    if (edges.length < 2) return edges;
+    const knownStars = new Set(this.starData.map((s) => s.id));
+    const anchor = anchorId && knownStars.has(anchorId) ? anchorId : edges[0][0];
+    const adjacency = new Map();
+    edges.forEach(([a, b], index) => {
+      for (const id of [a, b]) {
+        if (!adjacency.has(id)) adjacency.set(id, []);
+        adjacency.get(id).push(index);
+      }
+    });
+    const visitedEdges = new Set();
+    const visitedNodes = new Set([anchor]);
+    const ordered = [];
+    const stack = [anchor];
+    while (stack.length) {
+      const node = stack.pop();
+      for (const index of adjacency.get(node) || []) {
+        if (visitedEdges.has(index)) continue;
+        visitedEdges.add(index);
+        ordered.push(edges[index]);
+        const [a, b] = edges[index];
+        const next = a === node ? b : a;
+        if (!visitedNodes.has(next)) {
+          visitedNodes.add(next);
+          stack.push(next);
+        }
+      }
+    }
+    edges.forEach((edge, index) => {
+      if (!visitedEdges.has(index)) ordered.push(edge);
+    });
+    return ordered;
   }
   syncDrawing() {
     const attr = this.drawingStars.geometry.attributes;
@@ -328,7 +389,16 @@ export class Universe {
     const unit = this.artCoordinateSpace === 'normalized' ? this.height : 1;
     const x = center.x * unit - this.width / 2;
     const y = center.y * unit + this.height / 2;
-    const size = t.scale * 2.25 * unit;
+    // The illustration is meant to read as larger than the star shape it
+    // belongs to, for both constellations and imagined shapes. Rather than
+    // shrinking the art when a widely-spread placement would push it off
+    // screen (which would also make it look soft on a big display), the
+    // camera eases back instead — the art's on-screen size stays constant
+    // (ART_TARGET_PX) while the stars around it appear correspondingly
+    // smaller, like a dolly pulling back to keep a subject framed.
+    const artScale = this.artMatch.shape.artScale ?? 1;
+    const size = t.scale * ART_SIZE_MULTIPLIER * unit * artScale;
+    this.zoomTarget = Math.min(4, Math.max(1, size / ART_TARGET_PX));
     this.art.position.set(x, y, -3);
     this.art.scale.set(size * t.mirror, size, 1);
     this.art.rotation.z = t.angle;
@@ -338,6 +408,13 @@ export class Universe {
   hideArt() {
     this.artTarget = 0;
     this.artMatch = null;
+    this.zoomTarget = 1;
+  }
+  // Fades every currently-drawn connecting line out, used whenever an edit
+  // (moving, adding, or removing a star) breaks whatever pattern was being
+  // shown — the lines dissolve rather than staying pinned to a dragged star.
+  dissolveLines() {
+    this.lineFadeTarget = 0;
   }
   burst(point, strength = 1) {
     if (this.reducedMotion || this.bursts.length > 10) return;
@@ -367,8 +444,20 @@ export class Universe {
       for (const obj of [this.backgroundStars, this.drawingStars])
         obj.material.uniforms.uTime.value = this.clock;
       this.backgroundStars.rotation.z = Math.sin(this.clock * 0.008) * 0.006;
+      // A camera dolly, not a resize: everything at world z≈0 (stars, lines)
+      // shrinks toward the frame's center as the camera eases back, while the
+      // art's own scale already compensates so it holds a constant size.
+      this.zoom += (this.zoomTarget - this.zoom) * (this.reducedMotion ? 1 : Math.min(1, dt * 1.6));
+      this.camera.position.z = this.baseCameraZ * this.zoom;
+      for (const obj of [this.backgroundStars, this.drawingStars])
+        obj.material.uniforms.uDepth.value = this.camera.position.z;
+      this.lineOpacity +=
+        (this.lineFadeTarget - this.lineOpacity) * (this.reducedMotion ? 1 : Math.min(1, dt * 3.5));
+      this.lines.material.opacity = this.lineBaseOpacity * this.lineOpacity;
+      // A slow fade — the illustration should settle in gently, well after the
+      // connecting lines finish drawing, not pop in with them.
       this.artFade +=
-        (this.artTarget - this.artFade) * (this.reducedMotion ? 1 : Math.min(1, dt * 1.3));
+        (this.artTarget - this.artFade) * (this.reducedMotion ? 1 : Math.min(1, dt * 0.45));
       this.artMaterial.uniforms.uOpacity.value = this.artOpacity * this.artFade;
       this.artMaterial.uniforms.uTime.value = this.clock;
       this.orbits.visible = this.artFade > 0.05;

@@ -91,6 +91,7 @@ export const SHAPES = [
         [0, 7],
         [7, 8],
       ],
+      artScale: 0.82,
     },
   ),
   shape(
@@ -250,6 +251,7 @@ export const SHAPES = [
       [0.6, 0.68],
     ],
     '가지마다 빛을 매단 나무가 당신의 우주에 뿌리내립니다.',
+    { artScale: 0.85 },
   ),
   shape(
     'house',
@@ -309,7 +311,7 @@ export const SHAPES = [
       [0.39, -0.59],
     ],
     '별이 쏟아지는 밤, 작은 우산 하나를 펼칩니다.',
-    { edges: chain(9) },
+    { edges: chain(9), artScale: 0.8 },
   ),
   shape(
     'poop',

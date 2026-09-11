@@ -1,6 +1,13 @@
+// Cricket call frequencies and chirp cadence sit in a plausible range for a
+// field-cricket chorus (a burst of a few short pulses, then a pause), not a
+// literal recording — there is no audio asset here, only synthesis.
+const CRICKET_VOICES = [4200, 4550, 3900, 4350];
+
 export class Soundscape {
   constructor() {
     this.enabled = false;
+    this.activity = 0;
+    this.cricketTimers = [];
   }
   async toggle() {
     if (!this.context) {
@@ -8,17 +15,20 @@ export class Soundscape {
       this.master = this.context.createGain();
       this.master.gain.value = 0;
       this.master.connect(this.context.destination);
+      // A very soft, still night-air bed underneath the crickets — barely
+      // more than room tone, so the chirping reads as the main character of
+      // a summer evening rather than a synth pad with insects on top.
       const filter = this.context.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.value = 550;
+      filter.frequency.value = 260;
       filter.connect(this.master);
       this.voices = [];
-      for (const frequency of [65.406, 98, 130.813, 196]) {
+      for (const frequency of [55, 82.5]) {
         const oscillator = this.context.createOscillator();
         oscillator.type = 'sine';
         oscillator.frequency.value = frequency;
         const gain = this.context.createGain();
-        gain.gain.value = 0.04;
+        gain.gain.value = 0.018;
         oscillator.connect(gain);
         gain.connect(filter);
         oscillator.start();
@@ -26,7 +36,7 @@ export class Soundscape {
       }
       // A separate high voice, silent at rest, that setIntensity() opens up as
       // movement in front of the camera picks up — the "사운드가 움직임 강도에
-      // 반응" cue from the exhibition brief, layered on top of the fixed drone.
+      // 반응" cue from the exhibition brief, layered on top of the ambience.
       const shimmer = this.context.createOscillator();
       shimmer.type = 'triangle';
       shimmer.frequency.value = 880;
@@ -36,11 +46,51 @@ export class Soundscape {
       this.shimmerGain.connect(this.master);
       shimmer.start();
       this.voices.push(shimmer);
+      // A small chorus of crickets, each chirping on its own random cadence so
+      // they overlap and drift the way real ones do rather than looping in sync.
+      this.cricketGain = this.context.createGain();
+      this.cricketGain.gain.value = 1;
+      this.cricketGain.connect(this.master);
+      CRICKET_VOICES.forEach((frequency, index) => this.scheduleCricket(frequency, index));
     }
     await this.context.resume();
     this.enabled = !this.enabled;
     this.master.gain.setTargetAtTime(this.enabled ? 0.35 : 0, this.context.currentTime, 0.6);
     return this.enabled;
+  }
+  // One cricket's chirp train (a few quick pulses) followed by a randomized
+  // silence, rescheduling itself indefinitely. Real crickets go quiet when
+  // something moves nearby, so higher setIntensity() activity thins the chorus
+  // rather than muting it outright.
+  scheduleCricket(frequency, index) {
+    const chirp = () => {
+      if (this.enabled && Math.random() > this.activity * 0.7) {
+        const pulses = 3 + Math.floor(Math.random() * 3);
+        for (let p = 0; p < pulses; p++)
+          this.cricketPulse(frequency + (Math.random() - 0.5) * 90, p * (0.045 + Math.random() * 0.015));
+      }
+      const next = 700 + Math.random() * 2200 + index * 180;
+      this.cricketTimers[index] = setTimeout(chirp, next);
+    };
+    this.cricketTimers[index] = setTimeout(chirp, Math.random() * 2500);
+  }
+  cricketPulse(frequency, delaySeconds) {
+    const now = this.context.currentTime + delaySeconds;
+    const oscillator = this.context.createOscillator(),
+      gain = this.context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.055, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.04);
+    oscillator.connect(gain);
+    gain.connect(this.cricketGain);
+    oscillator.start(now);
+    oscillator.stop(now + 0.05);
+    oscillator.onended = () => {
+      oscillator.disconnect();
+      gain.disconnect();
+    };
   }
   chime(index = 0) {
     if (!this.enabled) return;
@@ -65,8 +115,9 @@ export class Soundscape {
   // value: 0 (still/empty) to 1 (someone actively interacting). Smoothed so it
   // never pops when presence or editing activity turns on and off quickly.
   setIntensity(value) {
-    if (!this.enabled || !this.shimmerGain) return;
     const clamped = Math.max(0, Math.min(1, value));
+    this.activity = clamped;
+    if (!this.enabled || !this.shimmerGain) return;
     this.shimmerGain.gain.setTargetAtTime(clamped * 0.05, this.context.currentTime, 0.35);
   }
   reveal() {
@@ -106,6 +157,7 @@ export class Soundscape {
     };
   }
   dispose() {
+    this.cricketTimers.forEach((timer) => clearTimeout(timer));
     this.voices?.forEach((v) => v.stop());
     this.context?.close();
   }
