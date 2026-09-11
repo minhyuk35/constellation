@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+tmp/
+*.log
+public/wasm/
+public/models/*.task
