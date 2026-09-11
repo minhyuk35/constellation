@@ -23,7 +23,7 @@ export default defineConfig({
       '@mediapipe/tasks-vision',
       'qrcode',
       '@tensorflow/tfjs-core',
-      '@tensorflow/tfjs-backend-webgl',
+      '@tensorflow/tfjs-backend-cpu',
       '@tensorflow/tfjs-converter',
       '@tensorflow-models/pose-detection',
     ],

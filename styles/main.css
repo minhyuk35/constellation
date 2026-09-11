@@ -78,27 +78,6 @@ button:active:not(:disabled) {
   height: 100%;
   outline: none;
 }
-.universe-flash {
-  position: absolute;
-  inset: 0;
-  background: #f4f8ff;
-  opacity: 0;
-  pointer-events: none;
-}
-.universe-flash.flash-active {
-  animation: universe-flash-pulse 1.1s ease-out;
-}
-@keyframes universe-flash-pulse {
-  0% {
-    opacity: 0;
-  }
-  8% {
-    opacity: 0.55;
-  }
-  100% {
-    opacity: 0;
-  }
-}
 .vignette {
   pointer-events: none;
   background:

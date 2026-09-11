@@ -201,7 +201,14 @@ export class HandController {
           );
           if (star && this.model.beginDrag(star.id)) slot.held = star.id;
         }
-        if (slot.held) this.model.move(slot.held, slot.x, slot.y);
+        if (slot.held) {
+          this.model.move(slot.held, slot.x, slot.y);
+          // Shake detection runs on the raw (pre-smoothing) fingertip
+          // position, not the eased cursor — the 0.42 lerp above exists to
+          // keep normal dragging smooth, but it also damps out the fast
+          // back-and-forth a deliberate shake needs to be recognized.
+          this.model.trackShake(slot.held, dx);
+        }
       } else if (slot.held) {
         this.model.endDrag(slot.held);
         slot.held = null;

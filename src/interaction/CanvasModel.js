@@ -81,8 +81,8 @@ export class CanvasModel extends EventTarget {
     if (!samples) return;
     const now = performance.now();
     samples.push({ x, t: now });
-    while (samples.length && now - samples[0].t > 380) samples.shift();
-    if (samples.length < 5) return;
+    while (samples.length && now - samples[0].t > 450) samples.shift();
+    if (samples.length < 4) return;
     let reversals = 0,
       path = 0,
       lastDir = 0;
@@ -94,7 +94,7 @@ export class CanvasModel extends EventTarget {
       if (lastDir && dir !== lastDir) reversals++;
       lastDir = dir;
     }
-    if (reversals >= 3 && path > 0.11) {
+    if (reversals >= 3 && path > 0.09) {
       this.shakeTracking.delete(id);
       this.deleteShaken(id);
     }

@@ -1,11 +1,13 @@
 import { CONFIG, asset } from '../config.js';
 
-// Runs MoveNet MultiPose on the main thread against the same shared <video>
-// HandController already owns — no second camera request, no second permission
-// prompt. Multiple visitors are tracked at once; each becomes a soft point of
-// gravity for the ambient star field and a possible bridge to another visitor,
-// echoing the exhibition brief's "다인원 관계성 분석" (multi-visitor relationship
-// analysis) beyond the single-hand interaction path.
+// Runs MoveNet MultiPose in a dedicated Worker (CPU backend) against the same
+// shared <video> HandController already owns — no second camera request, no
+// second permission prompt, and critically no competition with Three.js's own
+// WebGL rendering (a GPU-backend model running on the main thread was
+// visibly stalling the render loop). Multiple visitors are tracked at once;
+// each becomes a soft point of gravity for the ambient star field and a
+// possible bridge to another visitor, echoing the exhibition brief's "다인원
+// 관계성 분석" (multi-visitor relationship analysis) beyond single-hand input.
 export class PoseController {
   constructor(video, callbacks = {}) {
     this.video = video;
@@ -13,7 +15,9 @@ export class PoseController {
     this.active = false;
     this.loading = false;
     this.busy = false;
-    this.lastDetect = 0;
+    this.generation = 0;
+    this.lastFrame = 0;
+    this.lastVideo = -1;
     this.lastTick = 0;
     this.clockSeconds = 0;
     this.people = new Map();
@@ -21,54 +25,90 @@ export class PoseController {
   async start() {
     if (this.active || this.loading) return;
     this.loading = true;
+    const generation = ++this.generation;
     try {
-      // tfjs + pose-detection are a few hundred KB; loaded on demand so a
-      // visitor who never turns on the camera never pays for them.
-      const [tf, poseDetection] = await Promise.all([
-        import('@tensorflow/tfjs-core'),
-        import('@tensorflow/tfjs-backend-webgl').then(() => import('@tensorflow-models/pose-detection')),
-      ]);
-      await tf.setBackend('webgl');
-      await tf.ready();
-      this.detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, {
-        modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,
-        modelUrl: asset('models/movenet-multipose/model.json'),
-        enableTracking: true,
-        trackerType: poseDetection.TrackerType.BoundingBox,
+      const worker = new Worker(new URL('./pose.worker.js', import.meta.url), { type: 'module' });
+      this.worker = worker;
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(
+          () => reject(new Error('Pose tracking model preparation timed out.')),
+          25000,
+        );
+        worker.onmessage = ({ data }) => {
+          if (data.type === 'ready') {
+            clearTimeout(timeout);
+            resolve();
+          }
+          if (data.type === 'error') {
+            clearTimeout(timeout);
+            reject(new Error(data.message));
+          }
+        };
+        worker.onerror = (event) => {
+          clearTimeout(timeout);
+          reject(new Error(event.message || 'Pose tracking failed to start.'));
+        };
+        worker.postMessage({
+          type: 'init',
+          modelUrl: new URL(asset('models/movenet-multipose/model.json'), location.href).href,
+        });
       });
+      if (generation !== this.generation) {
+        worker.terminate();
+        return;
+      }
+      worker.onmessage = ({ data }) => {
+        this.busy = false;
+        if (data.type === 'result') this.integrate(data.poses, this.pendingDt ?? 0.1);
+      };
+      worker.onerror = () => {
+        this.stop();
+      };
       this.active = true;
       this.lastTick = 0;
+    } catch (error) {
+      this.worker?.terminate();
+      this.worker = null;
+      throw error;
     } finally {
       this.loading = false;
     }
   }
   stop() {
+    this.generation++;
     this.active = false;
+    this.busy = false;
+    this.worker?.terminate();
+    this.worker = null;
     this.people.clear();
-    this.detector?.dispose();
-    this.detector = null;
     this.callbacks.presence?.([]);
     this.callbacks.bridges?.([]);
     this.callbacks.count?.(0);
   }
-  // Called every render frame; internally throttled so MoveNet only runs a
-  // handful of times a second, independent of the render loop's frame rate.
+  // Called every render frame; internally throttled so a frame is only handed
+  // to the worker a handful of times a second, and never while it's still
+  // busy with the previous one — independent of the render loop's frame rate.
   tick(now) {
     if (!this.active || this.busy || document.hidden) return;
-    if (now - this.lastDetect < CONFIG.poseDetectInterval) return;
-    if (this.video.readyState < 2) return;
+    if (now - this.lastFrame < CONFIG.poseDetectInterval) return;
+    if (this.video.readyState < 2 || this.lastVideo === this.video.currentTime) return;
     this.busy = true;
-    this.lastDetect = now;
-    const dt = Math.min(0.4, (now - (this.lastTick || now)) / 1000);
+    this.lastFrame = now;
+    this.lastVideo = this.video.currentTime;
+    this.pendingDt = Math.min(0.4, (now - (this.lastTick || now)) / 1000);
     this.lastTick = now;
-    this.clockSeconds += dt;
-    this.detector
-      .estimatePoses(this.video, { maxPoses: 6 })
-      .then((poses) => this.integrate(poses, dt))
-      .catch(() => {
-        /* A frame dropped during model warm-up or a resize is not fatal. */
+    this.clockSeconds += this.pendingDt;
+    const generation = this.generation;
+    createImageBitmap(this.video)
+      .then((bitmap) => {
+        if (!this.active || generation !== this.generation) {
+          bitmap.close();
+          this.busy = false;
+          return;
+        }
+        this.worker.postMessage({ type: 'frame', bitmap }, [bitmap]);
       })
-      .finally(() => {
+      .catch(() => {
         this.busy = false;
       });
   }

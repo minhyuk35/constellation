@@ -554,9 +554,6 @@ export class Universe {
     );
     this.bridgeLines.frustumCulled = false;
     this.scene.add(this.bridgeLines);
-    this.flashLayer = document.createElement('div');
-    this.flashLayer.className = 'universe-flash';
-    this.container.append(this.flashLayer);
   }
   // Presence updates arrive at the pose tracker's cadence (a handful of times a
   // second); the drift itself is interpolated every rendered frame so it stays smooth.
@@ -609,22 +606,13 @@ export class Universe {
     }
     this.presenceCursor = (this.presenceCursor + count) % n;
     this.silhouette = { points: points.slice(0, count), slots, until: this.clock + CONFIG.poseSilhouetteDuration };
-    this.flash();
   }
-  // A brief camera-flash-style pulse over the stage, reused by the silhouette
-  // reveal and the hourly supernova event.
-  flash() {
-    if (this.reducedMotion || !this.flashLayer) return;
-    this.flashLayer.classList.remove('flash-active');
-    void this.flashLayer.offsetWidth;
-    this.flashLayer.classList.add('flash-active');
-  }
-  // "정각마다 초신성처럼 폭발 후 재배열되는 이벤트": a handful of scattered bursts
-  // plus a flash, independent of any camera or visitor — a small surprise for
-  // an idle screen, per the exhibition brief's photo-op ideas.
+  // "정각마다 초신성처럼 폭발 후 재배열되는 이벤트": a handful of scattered bursts,
+  // independent of any camera or visitor — a small surprise for an idle
+  // screen, per the exhibition brief's photo-op ideas. No screen flash (this
+  // runs in VR too, where a sudden full-white frame is uncomfortable).
   supernova() {
     if (this.reducedMotion) return;
-    this.flash();
     const count = 5 + Math.floor(Math.random() * 3);
     for (let i = 0; i < count; i++)
       this.burst({ x: 0.15 + Math.random() * 0.7, y: 0.15 + Math.random() * 0.7 }, 1.4 + Math.random());

@@ -1,13 +1,7 @@
-// Cricket call frequencies and chirp cadence sit in a plausible range for a
-// field-cricket chorus (a burst of a few short pulses, then a pause), not a
-// literal recording — there is no audio asset here, only synthesis.
-const CRICKET_VOICES = [4200, 4550, 3900, 4350];
-
 export class Soundscape {
   constructor() {
     this.enabled = false;
     this.activity = 0;
-    this.cricketTimers = [];
   }
   async toggle() {
     if (!this.context) {
@@ -15,82 +9,26 @@ export class Soundscape {
       this.master = this.context.createGain();
       this.master.gain.value = 0;
       this.master.connect(this.context.destination);
-      // A very soft, still night-air bed underneath the crickets — barely
-      // more than room tone, so the chirping reads as the main character of
-      // a summer evening rather than a synth pad with insects on top.
-      const filter = this.context.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 260;
-      filter.connect(this.master);
-      this.voices = [];
-      for (const frequency of [55, 82.5]) {
-        const oscillator = this.context.createOscillator();
-        oscillator.type = 'sine';
-        oscillator.frequency.value = frequency;
-        const gain = this.context.createGain();
-        gain.gain.value = 0.018;
-        oscillator.connect(gain);
-        gain.connect(filter);
-        oscillator.start();
-        this.voices.push(oscillator);
-      }
-      // A separate high voice, silent at rest, that setIntensity() opens up as
-      // movement in front of the camera picks up — the "사운드가 움직임 강도에
-      // 반응" cue from the exhibition brief, layered on top of the ambience.
-      const shimmer = this.context.createOscillator();
-      shimmer.type = 'triangle';
-      shimmer.frequency.value = 880;
-      this.shimmerGain = this.context.createGain();
-      this.shimmerGain.gain.value = 0;
-      shimmer.connect(this.shimmerGain);
-      this.shimmerGain.connect(this.master);
-      shimmer.start();
-      this.voices.push(shimmer);
-      // A small chorus of crickets, each chirping on its own random cadence so
-      // they overlap and drift the way real ones do rather than looping in sync.
-      this.cricketGain = this.context.createGain();
-      this.cricketGain.gain.value = 1;
-      this.cricketGain.connect(this.master);
-      CRICKET_VOICES.forEach((frequency, index) => this.scheduleCricket(frequency, index));
+      // No ambient bed is wired up right now — this is where one goes.
+      // `this.master` is the shared output every sound here uses (including
+      // chime/reveal/pop/shutter below), so route an ambience's own gain node
+      // into `this.master` and .start() it, e.g.:
+      //   const ambience = this.context.createBufferSource();
+      //   ambience.buffer = await loadYourAudioBuffer(this.context);
+      //   ambience.loop = true;
+      //   const ambienceGain = this.context.createGain();
+      //   ambienceGain.gain.value = 0.3;
+      //   ambience.connect(ambienceGain).connect(this.master);
+      //   ambience.start();
+      // `setIntensity()` below already receives a live 0..1 "how much is
+      // happening right now" value once a second from main.js's render loop
+      // (pose-tracked presence, or recent star edits) — connect a gain node
+      // to it there if the ambience should react to movement.
     }
     await this.context.resume();
     this.enabled = !this.enabled;
     this.master.gain.setTargetAtTime(this.enabled ? 0.35 : 0, this.context.currentTime, 0.6);
     return this.enabled;
-  }
-  // One cricket's chirp train (a few quick pulses) followed by a randomized
-  // silence, rescheduling itself indefinitely. Real crickets go quiet when
-  // something moves nearby, so higher setIntensity() activity thins the chorus
-  // rather than muting it outright.
-  scheduleCricket(frequency, index) {
-    const chirp = () => {
-      if (this.enabled && Math.random() > this.activity * 0.7) {
-        const pulses = 3 + Math.floor(Math.random() * 3);
-        for (let p = 0; p < pulses; p++)
-          this.cricketPulse(frequency + (Math.random() - 0.5) * 90, p * (0.045 + Math.random() * 0.015));
-      }
-      const next = 700 + Math.random() * 2200 + index * 180;
-      this.cricketTimers[index] = setTimeout(chirp, next);
-    };
-    this.cricketTimers[index] = setTimeout(chirp, Math.random() * 2500);
-  }
-  cricketPulse(frequency, delaySeconds) {
-    const now = this.context.currentTime + delaySeconds;
-    const oscillator = this.context.createOscillator(),
-      gain = this.context.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.055, now + 0.006);
-    gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.04);
-    oscillator.connect(gain);
-    gain.connect(this.cricketGain);
-    oscillator.start(now);
-    oscillator.stop(now + 0.05);
-    oscillator.onended = () => {
-      oscillator.disconnect();
-      gain.disconnect();
-    };
   }
   chime(index = 0) {
     if (!this.enabled) return;
@@ -112,13 +50,10 @@ export class Soundscape {
       gain.disconnect();
     };
   }
-  // value: 0 (still/empty) to 1 (someone actively interacting). Smoothed so it
-  // never pops when presence or editing activity turns on and off quickly.
+  // value: 0 (still/empty) to 1 (someone actively interacting). Not connected
+  // to anything yet — see the note in toggle() above.
   setIntensity(value) {
-    const clamped = Math.max(0, Math.min(1, value));
-    this.activity = clamped;
-    if (!this.enabled || !this.shimmerGain) return;
-    this.shimmerGain.gain.setTargetAtTime(clamped * 0.05, this.context.currentTime, 0.35);
+    this.activity = Math.max(0, Math.min(1, value));
   }
   reveal() {
     if (!this.enabled) return;
@@ -144,9 +79,9 @@ export class Soundscape {
       gain.disconnect();
     };
   }
-  // A short filtered-noise click, timed with the held-pose silhouette reveal's
-  // screen flash — "클라이맥스 순간 셔터음+화면 플래시로 촬영 타이밍 암시" from the
-  // exhibition brief's photo-op ideas. Synthesized rather than a sound asset.
+  // A short filtered-noise click, timed with the held-pose silhouette reveal
+  // — "클라이맥스 순간 셔터음으로 촬영 타이밍 암시" from the exhibition brief's
+  // photo-op ideas. Synthesized rather than a sound asset.
   shutter() {
     if (!this.enabled) return;
     const now = this.context.currentTime;
@@ -177,8 +112,6 @@ export class Soundscape {
     };
   }
   dispose() {
-    this.cricketTimers.forEach((timer) => clearTimeout(timer));
-    this.voices?.forEach((v) => v.stop());
     this.context?.close();
   }
 }
