@@ -24,6 +24,18 @@ export class Soundscape {
         oscillator.start();
         this.voices.push(oscillator);
       }
+      // A separate high voice, silent at rest, that setIntensity() opens up as
+      // movement in front of the camera picks up — the "사운드가 움직임 강도에
+      // 반응" cue from the exhibition brief, layered on top of the fixed drone.
+      const shimmer = this.context.createOscillator();
+      shimmer.type = 'triangle';
+      shimmer.frequency.value = 880;
+      this.shimmerGain = this.context.createGain();
+      this.shimmerGain.gain.value = 0;
+      shimmer.connect(this.shimmerGain);
+      this.shimmerGain.connect(this.master);
+      shimmer.start();
+      this.voices.push(shimmer);
     }
     await this.context.resume();
     this.enabled = !this.enabled;
@@ -49,6 +61,13 @@ export class Soundscape {
       oscillator.disconnect();
       gain.disconnect();
     };
+  }
+  // value: 0 (still/empty) to 1 (someone actively interacting). Smoothed so it
+  // never pops when presence or editing activity turns on and off quickly.
+  setIntensity(value) {
+    if (!this.enabled || !this.shimmerGain) return;
+    const clamped = Math.max(0, Math.min(1, value));
+    this.shimmerGain.gain.setTargetAtTime(clamped * 0.05, this.context.currentTime, 0.35);
   }
   reveal() {
     if (!this.enabled) return;

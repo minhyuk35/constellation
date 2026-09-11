@@ -84,6 +84,12 @@ body {
 #share-download:active {
   transform: translateY(1px);
 }
+.share-hashtag {
+  margin: 18px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: #9fb3ff;
+}
 .share-note {
   margin-top: 16px;
   font-size: 10.5px;

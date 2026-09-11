@@ -23,6 +23,8 @@ import {
   Camera,
   BookOpen,
   QrCode,
+  Play,
+  Square,
 } from 'lucide';
 import { SHAPES, SHAPE_MAP } from '../data/shapes.js';
 import { readArchive } from '../data/archive.js';
@@ -51,6 +53,8 @@ const icons = {
   Camera,
   BookOpen,
   QrCode,
+  Play,
+  Square,
 };
 export const $ = (id) => document.getElementById(id);
 export const refreshIcons = () => createIcons({ icons, attrs: { 'stroke-width': 1.5 } });
@@ -68,6 +72,7 @@ export class Interface {
       this.renderArchive();
       this.open('archive-dialog');
     });
+    click('archive-play-button', actions.timelapse);
     click('help-button', () => this.open('help-dialog'));
     click('settings-button', () => this.open('settings-dialog'));
     click('sound-button', actions.sound);
@@ -193,6 +198,12 @@ export class Interface {
       : `형태 유사도 ${match.similarity}% · ${s.kind}`;
     $('scene-status').textContent = example ? '별을 기다리는 중' : `${s.name} 발견`;
     $('next-preview').hidden = !example;
+  }
+  setTimelapsePlaying(playing) {
+    $('archive-play-button').innerHTML = playing
+      ? '<i data-lucide="square"></i><span>타임랩스 멈추기</span>'
+      : '<i data-lucide="play"></i><span>타임랩스로 다시 보기</span>';
+    refreshIcons();
   }
   showQR(dataUrl, url) {
     $('qr-image').src = dataUrl;

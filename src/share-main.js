@@ -93,6 +93,7 @@ try {
     }
     const downloadButton = $('share-download');
     downloadButton.hidden = false;
+    $('share-hashtag').hidden = false;
     downloadButton.addEventListener('click', () => {
       canvas.toBlob((blob) => {
         if (!blob) return;

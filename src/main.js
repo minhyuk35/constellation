@@ -7,7 +7,7 @@ import { Soundscape } from './audio/Soundscape.js';
 import { Interface, $ } from './ui/Interface.js';
 import { SHAPES, SHAPE_MAP } from './data/shapes.js';
 import { matchShapes, normalize } from './recognition/matcher.js';
-import { saveArchive } from './data/archive.js';
+import { saveArchive, readArchive } from './data/archive.js';
 import { encodeShare } from './data/share.js';
 import { CONFIG } from './config.js';
 import QRCode from 'qrcode';
@@ -25,6 +25,8 @@ let requestedRevision = -1,
 let lastHandCount = -1,
   presetChange = false;
 let inferredEdges = [];
+let poseIntensity = 0;
+let timelapseTimer = null;
 
 function start() {
   if (active) return;
@@ -111,6 +113,7 @@ function loadPreset(shape, intro = false) {
   }
 }
 async function toggleCamera() {
+  stopTimelapse();
   if (hand.active) {
     hand.stop();
     pose.stop();
@@ -211,6 +214,34 @@ function restore(entry) {
   const match = matchShapes(worldPoints(), [SHAPE_MAP.get(entry.shapeId)])[0];
   if (match) applyResult(match, { save: false });
 }
+function stopTimelapse() {
+  if (!timelapseTimer) return;
+  clearTimeout(timelapseTimer);
+  timelapseTimer = null;
+  ui.setTimelapsePlaying(false);
+}
+function toggleTimelapse() {
+  if (timelapseTimer) {
+    stopTimelapse();
+    return;
+  }
+  // Oldest first, so replaying it reads as the night's constellations accumulating.
+  const entries = readArchive().slice().reverse();
+  if (!entries.length) {
+    ui.toast('아직 다시 볼 기록이 없어요.');
+    return;
+  }
+  $('archive-dialog').close();
+  ui.setTimelapsePlaying(true);
+  let i = 0;
+  const step = () => {
+    restore(entries[i]);
+    i++;
+    timelapseTimer = i < entries.length ? setTimeout(step, 2600) : null;
+    if (!timelapseTimer) ui.setTimelapsePlaying(false);
+  };
+  step();
+}
 
 try {
   ui = new Interface({
@@ -224,12 +255,14 @@ try {
       }
     },
     undo: () => {
+      stopTimelapse();
       start();
       pointer.release();
       hand.releaseAll();
       if (!model.undo()) ui.toast('되돌릴 작업이 없어요.');
     },
     newCanvas: () => {
+      stopTimelapse();
       start();
       pointer.release();
       hand.releaseAll();
@@ -243,8 +276,15 @@ try {
     },
     save: saveImage,
     qr: showQrCode,
-    preset: (shape) => loadPreset(shape),
-    restore,
+    timelapse: toggleTimelapse,
+    preset: (shape) => {
+      stopTimelapse();
+      loadPreset(shape);
+    },
+    restore: (entry) => {
+      stopTimelapse();
+      restore(entry);
+    },
     mode: (mode) => pointer.setMode(mode),
     remove: () => {
       start();
@@ -309,6 +349,9 @@ try {
     bridges: (pairs) => universe.setBridges(pairs),
     trail: (point) => universe.spawnTrail(point),
     silhouette: (points) => universe.revealSilhouette(points),
+    state: (state) => {
+      poseIntensity = state === 'interact' ? 1 : state === 'approach' ? 0.45 : 0;
+    },
   });
   recognition = new Worker(new URL('./recognition/recognition.worker.js', import.meta.url), {
     type: 'module',
@@ -369,9 +412,32 @@ try {
   });
   loadPreset(SHAPES[0], true);
   let lastHint = '';
+  let lastSupernovaCheck = 0,
+    lastSupernovaHour = -1;
   universe.start((dt, now) => {
     hand.tick(now);
     pose.tick(now);
+    // Movement intensity reaching the ambient soundscape: how actively someone
+    // is being tracked by the pose layer, or how recently a star was edited by
+    // hand or mouse — whichever is more alive right now.
+    sound.setIntensity(
+      Math.max(poseIntensity, Math.max(0, 1 - (now - model.lastEdit) / 1500) * 0.6),
+    );
+    // "정각마다 초신성처럼 폭발 후 재배열되는 이벤트" from the exhibition brief: a
+    // small, camera-independent surprise for anyone watching the idle screen.
+    if (now - lastSupernovaCheck > 4000) {
+      lastSupernovaCheck = now;
+      const wallClock = new Date();
+      if (
+        wallClock.getMinutes() === 0 &&
+        wallClock.getSeconds() < 5 &&
+        lastSupernovaHour !== wallClock.getHours()
+      ) {
+        lastSupernovaHour = wallClock.getHours();
+        universe.supernova();
+        sound.reveal();
+      }
+    }
     if (
       active &&
       autoRecognize &&
