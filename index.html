@@ -25,7 +25,7 @@
         >
         <nav class="main-nav" aria-label="메인 메뉴">
           <button class="nav-link active" id="nav-create">우주 그리기</button>
-          <button class="nav-link" id="nav-library">별자리 도감 <span>16</span></button>
+          <button class="nav-link" id="nav-library">별자리 도감 <span>88</span></button>
           <button class="nav-link" id="nav-archive">나의 기록</button>
         </nav>
         <div class="header-tools">
@@ -42,7 +42,12 @@
           <button class="icon-button" id="help-button" title="조작 방법" aria-label="조작 방법">
             <i data-lucide="circle-help"></i>
           </button>
-          <button class="icon-button" id="ai-info-button" title="AI가 하는 일" aria-label="AI가 하는 일">
+          <button
+            class="icon-button"
+            id="ai-info-button"
+            title="AI가 하는 일"
+            aria-label="AI가 하는 일"
+          >
             <i data-lucide="cpu"></i>
           </button>
           <button class="icon-button" id="settings-button" title="화면 설정" aria-label="화면 설정">
@@ -89,6 +94,14 @@
           <span id="result-english">Aries</span>
         </div>
         <p id="result-description">황금빛 양의 이야기가 별 사이에서 깨어납니다.</p>
+        <span id="result-birthday" class="result-birthday"></span>
+        <a
+          id="result-art-credit"
+          class="result-art-credit"
+          href="#library-dialog"
+          target="_blank"
+          rel="noreferrer"
+        ></a>
         <div class="discovery-meta">
           <span id="result-detail">4개의 별 · 황도 별자리</span
           ><button id="next-preview" aria-label="다음 별자리 미리보기">
@@ -199,17 +212,57 @@
         <button class="icon-button close-dialog" aria-label="닫기"><i data-lucide="x"></i></button>
       </div>
       <p class="dialog-intro">
-        별자리부터 일상의 작은 모양까지. 마음에 드는 이야기를 밤하늘에 펼쳐보세요.
+        나의 생일을 닮은 12궁부터, 온 하늘의 88개 별자리까지. 하나의 이야기를 골라 펼쳐보세요.
       </p>
       <div class="filter-tabs" role="group" aria-label="도감 분류">
-        <button class="active" data-filter="all">모두</button
-        ><button data-filter="constellation">별자리</button
-        ><button data-filter="object">상상의 모양</button>
+        <button class="active" data-filter="zodiac">황도 12궁 <span>12</span></button>
+        <button data-filter="constellation">모든 별자리 <span>88</span></button>
+        <button data-filter="object">상상의 모양 <span>12</span></button>
+        <button data-filter="all">전체 <span>100</span></button>
       </div>
+      <div class="library-tools">
+        <label class="library-search"
+          ><i data-lucide="scan"></i
+          ><input
+            id="library-search"
+            type="search"
+            placeholder="이름으로 찾기 · 양자리, Leo, 북두칠성"
+            aria-label="별자리 이름 검색"
+        /></label>
+        <select id="library-season" aria-label="하늘별 필터">
+          <option value="">모든 하늘</option>
+          <option value="spring">봄 하늘</option>
+          <option value="summer">여름 하늘</option>
+          <option value="autumn">가을 하늘</option>
+          <option value="winter">겨울 하늘</option>
+          <option value="northern">북쪽 하늘</option>
+          <option value="southern">남쪽 하늘</option>
+        </select>
+      </div>
+      <div id="library-count" class="library-count" role="status" aria-live="polite"></div>
       <div id="library-grid" class="library-grid"></div>
+      <p id="library-empty" class="empty-archive" hidden>
+        일치하는 이야기가 없어요. 검색어나 하늘 분류를 바꿔보세요.
+      </p>
       <p class="small-note">
-        자유 배치는 이 16가지 형태와 비교해 닮은 모양을 찾습니다. 별자리 선은 화면에 맞춘 예술적
-        투영입니다.
+        88개 별자리와 12개 상상의 모양을 담았습니다. 자유 배치는 별 4개 이상인 형태와 비교합니다.
+        가까운 별의 간격을 넓힌 감상용 투영이며, 생일 구간은 일반적인 12궁 분류로 실제 태양의 위치와
+        다릅니다. 계절은 한국 중위도 저녁 하늘의 대략적인 분류이며, 남쪽 하늘에는 한국에서 보기
+        어려운 별자리도 포함됩니다.
+        <br />좌표:
+        <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noreferrer"
+          >d3-celestial · BSD 3-Clause</a
+        >
+        · 삽화: AI 제작 /
+        <a
+          href="https://johanmeuris.eu/work/stellarium-constellation-art/"
+          target="_blank"
+          rel="noreferrer"
+          >Johan Meuris · Stellarium</a
+        >
+        (<a href="https://artlibre.org/licence/lal/en/" target="_blank" rel="noreferrer"
+          >Free Art License 1.3</a
+        >).
       </p>
     </dialog>
     <dialog id="help-dialog" class="panel-dialog help-dialog">
@@ -286,9 +339,9 @@
           <div class="eyebrow">해석 — 생성 알고리즘</div>
           <h3>움직임을 별자리로 번역합니다</h3>
           <p>
-            인식된 좌표를 별의 생성·이동·연결, 등록된 16개 형태와의 기하학적 비교, 잔상·다리 연결
-            같은 화면 연출로 바꾸는 것은 학습된 모델이 아니라 이 프로젝트가 직접 만든 규칙과
-            물리입니다.
+            인식된 좌표를 별의 생성·이동·연결, 도감의 별 4개 이상인 형태와의 기하학적 비교,
+            잔상·다리 연결 같은 화면 연출로 바꾸는 것은 학습된 모델이 아니라 이 프로젝트가 직접 만든
+            규칙과 물리입니다.
           </p>
           <p class="ai-info-tech">Three.js 파티클 · 회전/반전 보정 형태 비교 · 커스텀 연출 로직</p>
         </div>

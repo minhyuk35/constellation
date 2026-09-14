@@ -9,6 +9,7 @@ import {
   artFragment,
 } from './shaders.js';
 import { transformPoint } from '../recognition/matcher.js';
+import { artwork } from '../data/art.js';
 
 // How much larger the illustration is than the star shape's own spread, and
 // the constant on-screen size (in CSS pixels) it holds to once the camera
@@ -202,12 +203,18 @@ export class Universe {
   }
 
   makeArt() {
+    this.artTextures = new Map();
+    this.artPending = new Map();
+    this.artRequest = 0;
     this.artMaterial = new THREE.ShaderMaterial({
       vertexShader: artVertex,
       fragmentShader: artFragment,
       uniforms: {
         uAtlas: { value: null },
         uTile: { value: new THREE.Vector2(0, 3) },
+        uGrid: { value: 4 },
+        uRect: { value: new THREE.Vector4(0, 0.75, 0.25, 0.25) },
+        uExposure: { value: 1 },
         uOpacity: { value: 0 },
         uTime: { value: 0 },
       },
@@ -221,16 +228,6 @@ export class Universe {
     this.art.renderOrder = 0;
     this.art.frustumCulled = false;
     this.scene.add(this.art);
-    new THREE.TextureLoader().load(
-      asset('art/celestial-atlas.png'),
-      (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
-        this.artMaterial.uniforms.uAtlas.value = texture;
-      },
-      undefined,
-      () => this.onError('삽화를 불러오지 못했습니다. 새로고침해 주세요.'),
-    );
     this.orbits = new THREE.Group();
     const orbitMaterial = new THREE.LineDashedMaterial({
       color: 0x779eae,
@@ -399,15 +396,59 @@ export class Universe {
   showArt(match, coordinateSpace = 'normalized') {
     this.artMatch = structuredClone(match);
     this.artCoordinateSpace = coordinateSpace;
-    this.artMaterial.uniforms.uTile.value.set(
-      match.shape.tile % 4,
-      3 - Math.floor(match.shape.tile / 4),
-    );
+    const art = artwork(match.shape);
+    const request = ++this.artRequest;
     this.artFade = 0;
-    this.artTarget = 1;
+    this.artTarget = 0;
+    this.artMaterial.uniforms.uOpacity.value = 0;
+    this.artReady = this.loadArtTexture(art.src)
+      .then((texture) => {
+        if (this.disposed || request !== this.artRequest) return;
+        this.artMaterial.uniforms.uAtlas.value = texture;
+        this.artMaterial.uniforms.uGrid.value = art.grid;
+        const { x, y, w, h } = art.rect;
+        this.artMaterial.uniforms.uRect.value.set(x, 1 - y - h, w, h);
+        this.artMaterial.uniforms.uExposure.value = art.credit === 'meuris' ? 2.1 : 1;
+        this.artMaterial.uniforms.uTile.value.set(
+          art.tile % art.grid,
+          art.grid - 1 - Math.floor(art.tile / art.grid),
+        );
+        this.artTarget = 1;
+        // Only retain a small working set as visitors browse all 88 figures.
+        this.pruneArtTextures(texture);
+      })
+      .catch(() => {
+        if (request === this.artRequest && !this.disposed)
+          this.onError('삽화를 불러오지 못했어요. 도감에서 다시 선택해 주세요.');
+      });
     this.positionArt();
   }
+  loadArtTexture(src) {
+    if (this.artTextures.has(src)) {
+      const texture = this.artTextures.get(src);
+      this.artTextures.delete(src);
+      this.artTextures.set(src, texture);
+      return Promise.resolve(texture);
+    }
+    if (this.artPending.has(src)) return this.artPending.get(src);
+    const promise = new THREE.TextureLoader()
+      .loadAsync(asset(src))
+      .then((texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+        if (this.disposed) texture.dispose();
+        else {
+          this.artTextures.set(src, texture);
+          this.pruneArtTextures(texture);
+        }
+        return texture;
+      })
+      .finally(() => this.artPending.delete(src));
+    this.artPending.set(src, promise);
+    return promise;
+  }
   positionArt() {
+    // Keep figures proportional even when their atlas rectangles are not square.
     const t = this.artMatch.transform;
     const center = transformPoint({ x: 0, y: 0 }, t);
     // Match coordinates are normalized in height units (x also divided by H).
@@ -425,15 +466,25 @@ export class Universe {
     const size = t.scale * ART_SIZE_MULTIPLIER * unit * artScale;
     this.zoomTarget = Math.min(4, Math.max(1, size / ART_TARGET_PX));
     this.art.position.set(x, y, -3);
-    this.art.scale.set(size * t.mirror, size, 1);
+    const { w, h } = artwork(this.artMatch.shape).rect;
+    this.art.scale.set(size * t.mirror * Math.min(1, w / h), size * Math.min(1, h / w), 1);
     this.art.rotation.z = t.angle;
     this.orbits.position.set(x, y, -4);
     this.orbits.scale.setScalar(size * 1.06);
   }
   hideArt() {
+    this.artRequest++;
     this.artTarget = 0;
     this.artMatch = null;
     this.zoomTarget = 1;
+  }
+  pruneArtTextures(protect) {
+    for (const [key, texture] of this.artTextures) {
+      if (this.artTextures.size <= 12) break;
+      if (texture === protect || texture === this.artMaterial.uniforms.uAtlas.value) continue;
+      texture.dispose();
+      this.artTextures.delete(key);
+    }
   }
   // Fades every currently-drawn connecting line out, used whenever an edit
   // (moving, adding, or removing a star) breaks whatever pattern was being
@@ -574,7 +625,10 @@ export class Universe {
     });
     this.bridgeLines.geometry.dispose();
     this.bridgeLines.geometry = new THREE.BufferGeometry();
-    this.bridgeLines.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    this.bridgeLines.geometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(positions, 3),
+    );
     this.bridgeLines.geometry.setDrawRange(0, pairs.length * 2);
   }
   // Recycles the oldest presence slot into a permanent, gently glowing footstep.
@@ -605,7 +659,11 @@ export class Universe {
       this.presenceState[slot] = 2;
     }
     this.presenceCursor = (this.presenceCursor + count) % n;
-    this.silhouette = { points: points.slice(0, count), slots, until: this.clock + CONFIG.poseSilhouetteDuration };
+    this.silhouette = {
+      points: points.slice(0, count),
+      slots,
+      until: this.clock + CONFIG.poseSilhouetteDuration,
+    };
   }
   // "정각마다 초신성처럼 폭발 후 재배열되는 이벤트": a handful of scattered bursts,
   // independent of any camera or visitor — a small surprise for an idle
@@ -615,14 +673,18 @@ export class Universe {
     if (this.reducedMotion) return;
     const count = 5 + Math.floor(Math.random() * 3);
     for (let i = 0; i < count; i++)
-      this.burst({ x: 0.15 + Math.random() * 0.7, y: 0.15 + Math.random() * 0.7 }, 1.4 + Math.random());
+      this.burst(
+        { x: 0.15 + Math.random() * 0.7, y: 0.15 + Math.random() * 0.7 },
+        1.4 + Math.random(),
+      );
   }
   tickPresence(dt) {
     if (!this.presenceStars) return;
     const attr = this.presenceStars.geometry.attributes;
     const n = attr.position.count;
     if (this.silhouette) {
-      const t = 1 - Math.max(0, (this.silhouette.until - this.clock) / CONFIG.poseSilhouetteDuration);
+      const t =
+        1 - Math.max(0, (this.silhouette.until - this.clock) / CONFIG.poseSilhouetteDuration);
       this.silhouette.slots.forEach((slot, i) => {
         const target = this.toWorld(this.silhouette.points[i]);
         const x = attr.position.getX(slot),
@@ -675,6 +737,7 @@ export class Universe {
     attr.aColor.needsUpdate = true;
   }
   async capture(title) {
+    await this.artReady;
     this.renderer.render(this.scene, this.camera);
     const source = this.renderer.domElement;
     const canvas = document.createElement('canvas');
@@ -689,13 +752,20 @@ export class Universe {
     ctx.fillStyle = '#8ea2b3';
     ctx.font = `${9 * ratio}px sans-serif`;
     ctx.fillText(
-      'Sky: ESO/S. Brunier · Celestial art: AI generated',
+      this.artMatch && artwork(this.artMatch.shape).credit === 'meuris'
+        ? 'Sky: ESO/S. Brunier · Art: Johan Meuris / Stellarium · Free Art License 1.3 · artlibre.org'
+        : 'Sky: ESO/S. Brunier · Celestial art: AI generated',
       28 * ratio,
       canvas.height - 22 * ratio,
+      canvas.width - 56 * ratio,
     );
     return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
   }
   dispose() {
+    this.disposed = true;
+    this.artRequest++;
+    for (const texture of this.artTextures.values()) texture.dispose();
+    this.artTextures.clear();
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();
     this.scene.traverse((obj) => {

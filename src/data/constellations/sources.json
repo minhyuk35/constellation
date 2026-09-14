@@ -1,0 +1,282 @@
+{
+  "coordinates": "https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/constellations.lines.json",
+  "names": "https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/constellations.json",
+  "art": [
+    {
+      "id": "antlia",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/antlia.png"
+    },
+    {
+      "id": "apus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/apus.png"
+    },
+    {
+      "id": "aquila",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/aquila.png"
+    },
+    {
+      "id": "ara",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/ara.png"
+    },
+    {
+      "id": "auriga",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/auriga.png"
+    },
+    {
+      "id": "bootes",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/bootes.png"
+    },
+    {
+      "id": "caelum",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/caelum.png"
+    },
+    {
+      "id": "camelopardalis",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/camelopardalis.png"
+    },
+    {
+      "id": "canes-venatici",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/canes-venatici.png"
+    },
+    {
+      "id": "canis-major",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/canis-major.png"
+    },
+    {
+      "id": "canis-minor",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/canis-minor.png"
+    },
+    {
+      "id": "carina",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/argonavis.png"
+    },
+    {
+      "id": "centaurus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/centaurus.png"
+    },
+    {
+      "id": "cepheus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/cepheus.png"
+    },
+    {
+      "id": "cetus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/cetus.png"
+    },
+    {
+      "id": "chamaeleon",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/chamaeleon.png"
+    },
+    {
+      "id": "circinus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/circinus.png"
+    },
+    {
+      "id": "columba",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/columba.png"
+    },
+    {
+      "id": "coma-berenices",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/coma-berenices.png"
+    },
+    {
+      "id": "corona-australis",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/corona-australis.png"
+    },
+    {
+      "id": "corona-borealis",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/corona-borealis.png"
+    },
+    {
+      "id": "corvus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/corvus.png"
+    },
+    {
+      "id": "crater",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/crater.png"
+    },
+    {
+      "id": "crux",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/crux.png"
+    },
+    {
+      "id": "cygnus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/cygnus.png"
+    },
+    {
+      "id": "delphinus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/delphinus.png"
+    },
+    {
+      "id": "dorado",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/dorado.png"
+    },
+    {
+      "id": "draco",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/draco.png"
+    },
+    {
+      "id": "equuleus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/equuleus.png"
+    },
+    {
+      "id": "eridanus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/eridanus.png"
+    },
+    {
+      "id": "fornax",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/fornax.png"
+    },
+    {
+      "id": "grus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/grus.png"
+    },
+    {
+      "id": "hercules",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/hercules.png"
+    },
+    {
+      "id": "horologium",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/horlogium.png"
+    },
+    {
+      "id": "hydra",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/hydra.png"
+    },
+    {
+      "id": "hydrus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/hydrus.png"
+    },
+    {
+      "id": "indus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/indus.png"
+    },
+    {
+      "id": "lacerta",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/lacerta.png"
+    },
+    {
+      "id": "leo-minor",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/leo-minor.png"
+    },
+    {
+      "id": "lepus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/lepus.png"
+    },
+    {
+      "id": "lupus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/lupus.png"
+    },
+    {
+      "id": "lynx",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/lynx.png"
+    },
+    {
+      "id": "lyra",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/lyra.png"
+    },
+    {
+      "id": "mensa",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/mensa.png"
+    },
+    {
+      "id": "microscopium",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/microscopium.png"
+    },
+    {
+      "id": "monoceros",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/monoceros.png"
+    },
+    {
+      "id": "musca",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/musca.png"
+    },
+    {
+      "id": "norma",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/norma.png"
+    },
+    {
+      "id": "octans",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/octans.png"
+    },
+    {
+      "id": "ophiuchus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/ophiuchus.png"
+    },
+    {
+      "id": "pavo",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/pavo.png"
+    },
+    {
+      "id": "perseus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/perseus.png"
+    },
+    {
+      "id": "phoenix",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/phoenix.png"
+    },
+    {
+      "id": "pictor",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/pictor.png"
+    },
+    {
+      "id": "piscis-austrinus",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/piscis-austrinus.png"
+    },
+    {
+      "id": "pyxis",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/pyxis.png"
+    },
+    {
+      "id": "reticulum",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/reticulum.png"
+    },
+    {
+      "id": "sagitta",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/sagitta.png"
+    },
+    {
+      "id": "sculptor",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/sculptor.png"
+    },
+    {
+      "id": "scutum",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/scutum.png"
+    },
+    {
+      "id": "sextans",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/sextans.png"
+    },
+    {
+      "id": "telescopium",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/telescopium.png"
+    },
+    {
+      "id": "triangulum",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/triangulum.png"
+    },
+    {
+      "id": "triangulum-australe",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/triangulum-australe.png"
+    },
+    {
+      "id": "tucana",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/tucana.png"
+    },
+    {
+      "id": "ursa-minor",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/ursa-minor.png"
+    },
+    {
+      "id": "volans",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/volans.png"
+    },
+    {
+      "id": "vulpecula",
+      "url": "https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/modern/illustrations/vulpecula.png"
+    }
+  ],
+  "licenses": {
+    "coordinates": "BSD-3-Clause · Olaf Frohn / d3-celestial",
+    "art": "Free Art License 1.3 · Johan Meuris / Stellarium"
+  }
+}

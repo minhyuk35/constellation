@@ -34,11 +34,11 @@ float core=exp(-d*d*440.);float rays=(exp(-abs(p.x)*150.)*exp(-abs(p.y)*10.)+exp
 float alpha=(glow+core+rays)*vPulse*uOpacity;if(alpha<.003)discard;gl_FragColor=vec4(vColor,alpha);}`;
 export const artVertex = `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 export const artFragment = `
-uniform sampler2D uAtlas;uniform vec2 uTile;uniform float uOpacity;uniform float uTime;varying vec2 vUv;
-void main(){vec2 uv=(vUv+uTile)/4.;vec4 tex=texture2D(uAtlas,uv);
+uniform sampler2D uAtlas;uniform vec4 uRect;uniform float uExposure;uniform float uOpacity;uniform float uTime;varying vec2 vUv;
+void main(){vec2 uv=uRect.xy+vUv*uRect.zw;vec4 tex=texture2D(uAtlas,uv);
  float edge=smoothstep(0.,.08,vUv.x)*smoothstep(0.,.08,vUv.y)*smoothstep(0.,.08,1.-vUv.x)*smoothstep(0.,.08,1.-vUv.y);
  float l=dot(tex.rgb,vec3(.2126,.7152,.0722));
  vec3 color=mix(tex.rgb,vec3(l)*vec3(.78,.98,1.19),.67);
  float mist=.96+.04*sin(vUv.y*8.+uTime*.35);
- gl_FragColor=vec4(color,tex.a*uOpacity*edge*mist);
+ gl_FragColor=vec4(color*uExposure,tex.a*uOpacity*edge*mist);
 }`;

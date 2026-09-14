@@ -62,7 +62,8 @@ try {
   await page.keyboard.press('Control+z');
   assert.equal(await page.locator('#star-count').innerText(), '10 STARS');
   await page.getByRole('button', { name: '별자리 도감' }).click();
-  assert.equal(await page.locator('.library-card').count(), 16);
+  assert.equal(await page.locator('.library-card').count(), 12);
+  await page.locator('[data-filter="object"]').click();
   await page.getByRole('button', { name: '국화 불러오기', exact: true }).click();
   await page.waitForTimeout(1500);
   await page.screenshot({ path: 'tmp/qa/flower.png' });
@@ -98,12 +99,13 @@ try {
   await page.screenshot({ path: 'tmp/qa/mobile.png' });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.getByRole('button', { name: '별자리 도감' }).click();
+  await page.locator('[data-filter="object"]').click();
   await page.getByRole('button', { name: '나비 불러오기', exact: true }).click();
   await page.waitForTimeout(1200);
   await page.screenshot({ path: 'tmp/qa/mobile-drawing.png' });
   assert.deepEqual(errors, []);
   console.log(
-    'PASS: render, create, recognize heart, drag/undo, 16-item library, archive, real hand model startup with a fake camera, camera stop, PNG export, immersive mode, mobile layout.',
+    'PASS: render, create, recognize heart, drag/undo, zodiac and object library, archive, real hand model startup with a fake camera, camera stop, PNG export, immersive mode, mobile layout.',
   );
 } catch (error) {
   console.error('Original failure:', error);

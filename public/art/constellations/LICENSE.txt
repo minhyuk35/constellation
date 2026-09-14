@@ -1,0 +1,20 @@
+STELLARIUM CONSTELLATION ILLUSTRATIONS
+
+Copyright Johan Meuris.
+Original work: Western constellation illustrations for Stellarium.
+Artist: https://johanmeuris.eu/work/stellarium-constellation-art/
+Original files: https://github.com/Stellarium/stellarium/tree/master/skycultures/modern/illustrations
+
+These PNG illustrations are distributed under the Free Art License 1.3.
+License text: https://artlibre.org/licence/lal/en/
+You may copy, distribute and modify this work under that license.
+Redistributions and derivative illustrations must retain the author's credit,
+identify the original work and its source, and carry the Free Art License.
+
+The source PNG files are included unmodified. The site's renderer applies
+transparency, additive blending, scaling and a blue tint during display.
+Exact per-image original URLs are recorded in:
+src/data/constellations/sources.json
+
+This notice applies to the 68 PNG files in this directory. The separately
+generated celestial-atlas.png and zodiac-atlas.png are not Stellarium art.

@@ -29,7 +29,8 @@ npm.cmd run test:browser
 
 - ESO의 실제 은하수 파노라마, 여러 깊이에 배치한 Three.js 별 9,500개, 성운 셰이더, 별빛 명멸.
 - 별 생성·이동·연결·선택 삭제·되돌리기. 최대 48개이며 자동 인식이 배치한 별의 좌표를 변경하지 않습니다.
-- 양자리, 카시오페아, 오리온, 큰곰(북두칠성)과 하트, 별, 초승달, 국화, 고양이, 나비, 물고기, 나무, 집, 자동차, 우산, 똥 모양의 총 16가지 도감.
+- **황도 12궁을 포함한 공식 88개 별자리**와 기존 12개 상상의 모양, 총 **100종 도감**. 양·황소·쌍둥이·게·사자·처녀·천칭·전갈·궁수·염소·물병·물고기자리가 생일 구간과 함께 첫 탭에 표시됩니다. 한글·영문·IAU 약자·별칭 검색과 하늘별 필터를 제공합니다.
+- 모든 별자리에 개별 좌표·연결선·이야기·삽화를 연결했습니다. 도감 미리보기에서도 실제 연결 모양을 확인할 수 있습니다. 불러오기는 현재 그림을 교체하며 이전 별자리의 별이 누적되지 않습니다. 기존 4개 별자리의 수동 배치와 삽화 크기 설정을 보존했고, 새 84개 투영은 가까운 별 간격을 벌려 구분할 수 있게 했습니다.
 - 3.2초 정지 후 형태 비교. 마지막에 움직인 별을 기준으로, 별에서 별로 실제로 그려지듯 한 번에 한 구간씩 자라나며 한 방향으로 이어지고, 뒤이어 형태에 대응하는 삽화가 천천히 밝아집니다. 삽화는 항상 연결된 별 모양보다 크게 유지되며, 별 배치가 아주 넓어지면 카메라가 뒤로 물러나는 듯한 연출로 삽화 크기 자체는 일정하게 유지합니다. 별을 다시 움직이면 이전 연결선은 서서히 사라집니다. 수동 ‘형태 발견하기’와 자동 인식 끄기도 지원합니다.
 - 웹캠으로 두 손 추적: 엄지·검지 집기 → 별 이동, 주먹 1초 → 별 생성, 손 펼치기 → 빛의 파동, 잡은 별을 좌우로 빠르게 흔들기 → 별 삭제(키보드 없이도 삭제 가능). 손을 잃으면 잡던 별을 놓고 중복 생성을 방지합니다.
 - 카메라 권한 거부·연결 실패 안내, 카메라 켜기/끄기. 영상은 브라우저 안에서 처리하며 서버 전송·녹화·화면 노출을 하지 않습니다.
@@ -73,6 +74,10 @@ src/interaction/pose.worker.js     MoveNet 추론 전용 Worker(CPU 백엔드)
 src/recognition/matcher.js         회전·반전·크기 보정 및 형태 비교
 src/recognition/recognition.worker.js 형태 비교 전용 Worker
 src/data/shapes.js                 별자리·사물 좌표와 그림 매핑
+src/data/constellations/catalogue.json  88개 별자리의 천체 참조 좌표·화면 좌표·연결선
+src/data/constellations/stories.js  88개 이야기·황도 12궁 생일 구간·하늘 분류
+src/data/constellations/sources.json  좌표·삽화의 원본 URL과 라이선스 기록
+src/data/art.js                    다중 atlas·개별 삽화 매핑과 크레딧
 src/data/archive.js                로컬 기록 검증·저장
 src/data/share.js                  QR 공유용 압축 인코딩·디코딩(개인정보 미포함)
 src/ui/Interface.js                도감·설정·안내·키보드·접근성
@@ -80,12 +85,13 @@ src/audio/Soundscape.js            앰비언트 사운드·별빛 음향
 src/vendor/mediapipe-pose-stub.js  BlazePose 미사용 경로를 위한 빌드용 스텁
 public/art/                       실제 은하수 사진·생성 삽화 atlas
 scripts/setup-vision.mjs           로컬 모델·ES module WASM·포즈 모델 준비
+scripts/import-constellations.mjs  별자리 자료 투영·중복 제거·간격 보정·삽화 다운로드
 tests/                            회귀 테스트·브라우저 검증
 ```
 
 ## 형태 인식의 범위와 확장
 
-손의 21개 관절 추적에는 **MediaPipe의 학습 모델**을 사용합니다. 별 배치 해석은 **등록된 16개 템플릿의 기하학적 비교**입니다. 임의의 모든 현실 사물을 알아보는 범용 이미지 AI나 실행 중 새 삽화를 생성하는 기능은 아닙니다.
+손의 21개 관절 추적에는 **MediaPipe의 학습 모델**을 사용합니다. 별 배치 해석은 **100종 도감 중 별이 4개 이상인 템플릿의 기하학적 비교**입니다. 2~3개 별만 가진 별자리는 구분이 모호하므로 도감에서 직접 불러와 감상·저장·QR 공유할 수 있습니다. 임의의 모든 현실 사물을 알아보는 범용 이미지 AI나 실행 중 새 삽화를 생성하는 기능은 아닙니다.
 
 배치 순서에 영향을 받지 않는 양방향 최근접 거리, 별 개수, 32개 회전 방향, 좌우 반전, 각도 세부 탐색을 사용합니다. 표시하는 ‘형태 유사도’는 이 거리에서 산출한 지표로, 보정된 확률이나 과학적인 신뢰도는 아닙니다. 낮은 유사도에서는 이름·삽화를 확정하지 않고 사용자 배치를 유지합니다. 별이 적거나 배치가 모호하면 여러 형태가 비슷하게 평가될 수 있습니다. 직접 연결한 선은 보존하고, 자동 생성한 선은 다음 편집 때 교체합니다.
 
@@ -100,6 +106,7 @@ MediaPipe의 배포 WASM 로더는 classic script를 전제로 합니다. 준비
 ## 출처
 
 - 은하수: **[ESO/S. Brunier — The Milky Way panorama](https://www.eso.org/public/images/eso0932a/)**. [CC BY 4.0 및 ESO 사용 조건](https://www.eso.org/public/outreach/copyright/). 화면과 저장 이미지에 크레딧을 표시합니다. 화면에서는 색조·밝기·기울기를 조정했습니다.
-- 별자리 참조: 기존 데모의 [d3-celestial](https://github.com/ofrohn/d3-celestial) 기반 투영을 참고했습니다. 천체 관측용 좌표계가 아닌 예술적 화면 배치이며, 큰곰은 북두칠성 부분을 보여줍니다.
-- 16종 삽화: 이 프로젝트를 위해 생성한 별도 이미지. 실시간 AI 생성이 아닌 사전 제작 아트입니다.
+- 별자리 좌표·한글 이름: [d3-celestial](https://github.com/ofrohn/d3-celestial), BSD 3-Clause. 원문 라이선스는 `src/data/constellations/DATA-LICENSE.txt`와 빌드에 포함되는 `public/art/constellations/DATA-LICENSE.txt`에 보관했습니다. 구면 좌표를 접평면에 투영하고 가까운 별의 표시 간격을 보정했습니다. 큰곰은 기존 북두칠성 부분을 유지하며, 뱀자리는 머리·꼬리 두 영역을 하나의 항목으로 묶되 사이에 가짜 연결선을 추가하지 않습니다.
+- 32종 생성 삽화: 기존 16종 atlas와 새 16종 `zodiac-atlas.png`. 새 atlas는 양자리를 제외한 11궁과 뱀·고물·돛·안드로메다·페가수스 그림을 담습니다. 실시간 생성이 아닌 사전 제작 아트입니다.
+- 나머지 68종 삽화: **[Johan Meuris / Stellarium](https://johanmeuris.eu/work/stellarium-constellation-art/)**, **[Free Art License 1.3](https://artlibre.org/licence/lal/en/)**. 원본 PNG는 수정하지 않았고 렌더링할 때 색조·투명도·크기를 조정합니다. 라이선스 고지는 `public/art/constellations/LICENSE.txt`, 파일별 원본 주소는 `src/data/constellations/sources.json`에 있습니다. 해당 삽화는 재배포·파생 작품에도 이 라이선스와 크레딧을 유지해야 합니다. 도감·그림 설명·PNG 저장에 출처를 표시합니다.
 - [Three.js](https://threejs.org/) (MIT), [Lucide](https://lucide.dev/) (ISC), [MediaPipe Hand Landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js) (Apache-2.0), [TensorFlow.js MoveNet MultiPose](https://www.tensorflow.org/hub/tutorials/movenet) (Apache-2.0), [qrcode](https://github.com/soldair/node-qrcode) (MIT).

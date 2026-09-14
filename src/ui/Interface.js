@@ -30,6 +30,8 @@ import {
 } from 'lucide';
 import { SHAPES, SHAPE_MAP } from '../data/shapes.js';
 import { readArchive } from '../data/archive.js';
+import { artwork, artCredit, ART_LICENSE_URL } from '../data/art.js';
+import { SEASONS } from '../data/constellations/stories.js';
 const icons = {
   Orbit,
   VolumeX,
@@ -107,12 +109,20 @@ export class Interface {
       .forEach((b) => b.addEventListener('click', () => this.mode(b.dataset.mode)));
     document.querySelectorAll('[data-filter]').forEach((b) =>
       b.addEventListener('click', () => {
-        document
-          .querySelectorAll('[data-filter]')
-          .forEach((t) => t.classList.toggle('active', t === b));
-        this.renderLibrary(b.dataset.filter);
+        document.querySelectorAll('[data-filter]').forEach((t) => {
+          t.classList.toggle('active', t === b);
+          t.setAttribute('aria-pressed', String(t === b));
+        });
+        this.libraryFilter = b.dataset.filter;
+        this.renderLibrary();
       }),
     );
+    this.libraryFilter = 'zodiac';
+    document
+      .querySelectorAll('[data-filter]')
+      .forEach((t) => t.setAttribute('aria-pressed', String(t.dataset.filter === 'zodiac')));
+    $('library-search').addEventListener('input', () => this.renderLibrary());
+    $('library-season').addEventListener('change', () => this.renderLibrary());
     $('art-opacity').addEventListener('input', (e) => {
       $('opacity-value').value = `${Math.round(e.target.value * 100)}%`;
       actions.opacity(Number(e.target.value));
@@ -198,6 +208,11 @@ export class Interface {
     $('result-name').textContent = s.name;
     $('result-english').textContent = s.english;
     $('result-description').textContent = s.description;
+    $('result-birthday').textContent = s.zodiac ? `${s.zodiac.symbol}\uFE0E ${s.zodiac.dates}` : '';
+    $('result-birthday').hidden = !s.zodiac;
+    $('result-art-credit').textContent = artCredit(s);
+    if (artwork(s).credit === 'meuris') $('result-art-credit').href = ART_LICENSE_URL;
+    else $('result-art-credit').removeAttribute('href');
     $('result-detail').textContent = example
       ? `${s.points.length}개의 별 · ${s.kind}`
       : `형태 유사도 ${match.similarity}% · ${s.kind}`;
@@ -259,32 +274,93 @@ export class Interface {
     refreshIcons();
   }
   thumbnail(shape) {
+    const art = artwork(shape);
     const div = document.createElement('span');
     div.className = 'art-thumbnail';
-    div.style.backgroundPosition = `${((shape.tile % 4) * 100) / 3}% ${(Math.floor(shape.tile / 4) * 100) / 3}%`;
+    const frame = document.createElement('span');
+    frame.className = 'art-thumbnail-image';
+    const { x, y, w, h } = art.rect;
+    frame.style.backgroundImage = `url("${import.meta.env.BASE_URL}${art.src}")`;
+    frame.style.backgroundSize = `${100 / w}% ${100 / h}%`;
+    frame.style.backgroundPosition = `${w === 1 ? 0 : (x / (1 - w)) * 100}% ${h === 1 ? 0 : (y / (1 - h)) * 100}%`;
+    frame.style.transform = `scale(${Math.min(1, w / h)},${Math.min(1, h / w)})`;
+    div.append(frame);
     return div;
   }
-  renderLibrary(filter = 'all') {
+  renderLibrary() {
+    const filter = this.libraryFilter;
+    const query = $('library-search').value.trim().toLocaleLowerCase().replaceAll(' ', '');
+    const season = $('library-season').value;
+    const shapes = SHAPES.filter(
+      (s) =>
+        (filter === 'all' || (filter === 'zodiac' ? !!s.zodiac : s.category === filter)) &&
+        (!season || s.season === season) &&
+        (!query ||
+          [s.name, s.english, s.abbr, ...(s.aliases || []), s.zodiac?.dates]
+            .filter(Boolean)
+            .join(' ')
+            .toLocaleLowerCase()
+            .replaceAll(' ', '')
+            .includes(query)),
+    );
     const grid = $('library-grid');
     grid.replaceChildren();
-    for (const shape of SHAPES.filter((s) => filter === 'all' || s.category === filter)) {
+    $('library-count').textContent = `${shapes.length}개의 이야기`;
+    $('library-empty').hidden = shapes.length > 0;
+    for (const shape of shapes) {
       const card = document.createElement('button');
       card.className = 'library-card';
       card.dataset.shape = shape.id;
       card.setAttribute('aria-label', `${shape.name} 불러오기`);
-      card.append(this.thumbnail(shape));
+      const visual = document.createElement('span');
+      visual.className = 'library-visual';
+      visual.append(this.thumbnail(shape), this.starDiagram(shape));
+      if (shape.zodiac) {
+        const badge = document.createElement('span');
+        badge.className = 'zodiac-badge';
+        badge.textContent = shape.zodiac.symbol + '\uFE0E';
+        visual.append(badge);
+      }
+      card.append(visual);
       const title = document.createElement('strong');
       title.textContent = shape.name;
       card.append(title);
       const note = document.createElement('small');
       note.textContent = `${shape.english} · ${shape.points.length} stars`;
       card.append(note);
+      const detail = document.createElement('span');
+      detail.className = 'library-detail';
+      detail.textContent = shape.zodiac?.dates || SEASONS[shape.season] || '상상의 모양';
+      card.append(detail);
       card.addEventListener('click', () => {
         $('library-dialog').close();
         this.actions.preset(shape);
       });
       grid.append(card);
     }
+  }
+  starDiagram(shape) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '-1.15 -1.15 2.3 2.3');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.classList.add('library-stars');
+    for (const [a, b] of shape.edges) {
+      const line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', shape.points[a].x);
+      line.setAttribute('y1', -shape.points[a].y);
+      line.setAttribute('x2', shape.points[b].x);
+      line.setAttribute('y2', -shape.points[b].y);
+      svg.append(line);
+    }
+    for (const p of shape.points) {
+      const circle = document.createElementNS(ns, 'circle');
+      circle.setAttribute('cx', p.x);
+      circle.setAttribute('cy', -p.y);
+      circle.setAttribute('r', '.021');
+      svg.append(circle);
+    }
+    return svg;
   }
   renderArchive() {
     const list = $('archive-list');

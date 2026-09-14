@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { SHAPES } from '../src/data/shapes.js';
 import { matchShapes, buildConnections } from '../src/recognition/matcher.js';
 
-test('all 16 shapes survive scale, rotation, translation, reflection, and insertion-order changes', () => {
+test('all identifiable catalogue shapes survive scale, rotation, translation, reflection, and insertion-order changes', () => {
   for (const shape of SHAPES) {
+    if (shape.points.length < 4) continue;
     for (const mirror of [1, -1]) {
       const a = 0.73;
       const transformed = shape.points
@@ -15,8 +16,17 @@ test('all 16 shapes survive scale, rotation, translation, reflection, and insert
         .reverse();
       const [best] = matchShapes(transformed, SHAPES);
       assert.equal(best.shape.id, shape.id, `${shape.id}, mirror=${mirror}`);
-      assert.ok(best.similarity > 98);
+      assert.ok(best.similarity > 98, `${shape.id}, mirror=${mirror}: ${best.similarity}`);
     }
+  }
+});
+test('two- and three-star presets can be fitted for archive restore without guessing between ambiguous shapes', () => {
+  for (const shape of SHAPES.filter((s) => s.points.length < 4)) {
+    const points = shape.points.map((p) => ({ x: p.x * 3 + 7, y: p.y * 3 - 2 }));
+    const [match] = matchShapes(points, [shape]);
+    assert.equal(match.shape.id, shape.id);
+    assert.equal(match.similarity, 100);
+    assert.deepEqual(matchShapes(points, SHAPES), []);
   }
 });
 test('moderate placement noise still identifies Aries, chrysanthemum, and playful everyday objects', () => {

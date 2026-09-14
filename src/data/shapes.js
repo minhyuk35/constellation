@@ -1,3 +1,5 @@
+import catalogue from './constellations/catalogue.json' with { type: 'json' };
+import { SEASONS, STORIES, ZODIAC } from './constellations/stories.js';
 // Coordinates use a square illustration space: x right, y up. The constellation
 // projections preserve the reference paths in the original demo (d3-celestial).
 const points = (pairs) => pairs.map(([x, y]) => ({ x, y }));
@@ -24,7 +26,7 @@ const radial = (n, radius) =>
     return [Math.cos(a) * r, Math.sin(a) * r];
   });
 
-export const SHAPES = [
+const ORIGINAL_SHAPES = [
   shape(
     'aries',
     '양자리',
@@ -334,5 +336,38 @@ export const SHAPES = [
     ],
     '우주에서는 어떤 상상도 반짝이는 작품이 됩니다.',
   ),
+];
+const originals = new Map(ORIGINAL_SHAPES.map((s) => [s.id, s]));
+export const CONSTELLATIONS = catalogue
+  .map((entry) => {
+    const original = originals.get(entry.id);
+    const zodiac = ZODIAC.find((z) => z.abbr === entry.abbr);
+    return {
+      ...entry,
+      ...original,
+      aliases: [
+        ...entry.aliases,
+        ...(entry.abbr === 'UMa' ? ['북두칠성', 'Big Dipper'] : []),
+        ...(entry.abbr === 'Sgr' ? ['사수자리'] : []),
+      ],
+      description: STORIES[entry.abbr],
+      kind: zodiac ? '황도 12궁' : SEASONS[entry.season],
+      zodiac,
+      art: entry.art || {
+        src: 'art/celestial-atlas.png',
+        grid: 4,
+        tile: original.tile,
+        credit: 'generated',
+      },
+    };
+  })
+  .sort(
+    (a, b) =>
+      (a.zodiac?.number ?? 99) - (b.zodiac?.number ?? 99) || a.name.localeCompare(b.name, 'ko'),
+  );
+export const ZODIAC_SHAPES = CONSTELLATIONS.filter((s) => s.zodiac);
+export const SHAPES = [
+  ...CONSTELLATIONS,
+  ...ORIGINAL_SHAPES.filter((s) => s.category === 'object'),
 ];
 export const SHAPE_MAP = new Map(SHAPES.map((s) => [s.id, s]));

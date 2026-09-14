@@ -16,7 +16,7 @@ export function readArchive() {
         )
           return false;
         if (
-          e.stars.length < 4 ||
+          e.stars.length < 2 ||
           e.stars.length > CONFIG.maxStars ||
           e.edges.length > CONFIG.maxStars * CONFIG.maxStars
         )

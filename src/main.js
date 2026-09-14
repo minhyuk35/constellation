@@ -5,7 +5,7 @@ import { HandController } from './interaction/HandController.js';
 import { PoseController } from './interaction/PoseController.js';
 import { Soundscape } from './audio/Soundscape.js';
 import { Interface, $ } from './ui/Interface.js';
-import { SHAPES, SHAPE_MAP } from './data/shapes.js';
+import { SHAPES, SHAPE_MAP, ZODIAC_SHAPES } from './data/shapes.js';
 import { matchShapes, normalize } from './recognition/matcher.js';
 import { saveArchive, readArchive } from './data/archive.js';
 import { encodeShare } from './data/share.js';
@@ -58,6 +58,8 @@ function applyResult(match, { example = false, save = true } = {}) {
   recognizedRevision = model.revision;
   universe.showArt(match);
   ui.showResult(match, example);
+  if (active)
+    $('drawing-hint').textContent = '별을 옮기거나, 빈 공간을 눌러 나만의 이야기를 더해보세요.';
   updateDrawing(true);
   if (
     save &&
@@ -171,7 +173,7 @@ async function saveImage() {
   }
 }
 async function showQrCode() {
-  if (model.stars.length < CONFIG.minStars) {
+  if (model.stars.length < (currentMatch ? 2 : CONFIG.minStars)) {
     ui.toast('별을 4개 이상 놓으면 QR로 공유할 수 있어요.');
     return;
   }
@@ -276,8 +278,8 @@ try {
     },
     interpret: () => recognize(true),
     next: () => {
-      previewIndex = (previewIndex + 1) % 4;
-      loadPreset(SHAPES[previewIndex], !active);
+      previewIndex = (previewIndex + 1) % ZODIAC_SHAPES.length;
+      loadPreset(ZODIAC_SHAPES[previewIndex], !active);
     },
     save: saveImage,
     qr: showQrCode,

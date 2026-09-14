@@ -40,6 +40,7 @@ dialog::backdrop {
 }
 .filter-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
   margin-bottom: 21px;
 }
@@ -68,23 +69,162 @@ dialog::backdrop {
   overflow: hidden;
   padding: 10px 13px 14px;
   transition:
+    transform 0.2s,
     background 0.2s,
     border-color 0.2s;
 }
 .library-card:hover {
+  transform: translateY(-3px);
   background: #adcfdd0d;
   border-color: #aac9d63b;
 }
 .art-thumbnail {
+  position: relative;
   display: block;
   width: 100%;
   aspect-ratio: 1;
-  background-image: url('/art/celestial-atlas.png');
-  background-size: 400% 400%;
   filter: saturate(0.6);
   opacity: 0.68;
   mix-blend-mode: screen;
   mask-image: radial-gradient(ellipse, black 45%, transparent 75%);
+}
+.art-thumbnail-image {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+}
+.library-dialog {
+  width: min(980px, calc(100vw - 36px));
+}
+.library-tools {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.library-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  border: 1px solid #abc8dd25;
+  border-radius: 7px;
+  padding: 0 13px;
+  background: #050b1440;
+  min-width: 0;
+}
+.library-search svg {
+  width: 15px;
+  color: #879daf;
+  flex-shrink: 0;
+}
+.library-search input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: #d1e1e9;
+  padding: 13px 0;
+  font: inherit;
+  font-size: 12px;
+  min-width: 0;
+}
+.library-search input::placeholder {
+  color: #718698;
+}
+.library-tools select {
+  border: 1px solid #abc8dd25;
+  border-radius: 7px;
+  background: #111e2c;
+  color: #abc0ce;
+  padding: 0 12px;
+  font-size: 11px;
+}
+.library-count {
+  color: #849baa;
+  font-size: 10px;
+  margin: 16px 0;
+  letter-spacing: 0.06em;
+}
+.library-visual {
+  position: relative;
+  display: block;
+}
+.library-stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.45;
+  transition: opacity 0.25s;
+}
+.library-stars line {
+  stroke: #bacfe1;
+  stroke-width: 0.008;
+}
+.library-stars circle {
+  fill: #eef8ff;
+}
+.library-card:hover .library-stars,
+.library-card:focus-visible .library-stars {
+  opacity: 1;
+}
+.library-card:hover .art-thumbnail {
+  opacity: 0.92;
+}
+.zodiac-badge {
+  position: absolute;
+  right: 0;
+  top: 0;
+  color: #c3bba7;
+  font:
+    20px 'Segoe UI Symbol',
+    Georgia,
+    serif;
+}
+.library-detail {
+  display: block;
+  color: #b8b3a2;
+  font-size: 9px;
+  margin-top: 10px;
+  letter-spacing: 0.07em;
+}
+.filter-tabs span {
+  color: #657e91;
+  margin-left: 5px;
+  font-size: 9px;
+}
+.small-note a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.result-birthday {
+  display: block;
+  color: #c6bfa8 !important;
+  letter-spacing: 0.1em;
+  font-size: 10px !important;
+  margin-top: 8px !important;
+}
+.result-art-credit {
+  display: inline-block;
+  color: #7b94a7;
+  font-size: 8px;
+  margin: 6px 0 10px;
+}
+.result-art-credit[href] {
+  pointer-events: auto;
+}
+@media (max-width: 600px) {
+  .library-tools {
+    flex-direction: column;
+  }
+  .library-tools select {
+    min-height: 38px;
+  }
+  .filter-tabs button {
+    padding: 9px 10px;
+  }
+  .panel-dialog {
+    padding: 23px;
+  }
 }
 .library-card strong {
   display: block;
