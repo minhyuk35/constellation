@@ -353,7 +353,6 @@ try {
   });
   pose = new PoseController($('camera-video'), {
     presence: (people) => universe.setPresence(people),
-    bridges: (pairs) => universe.setBridges(pairs),
     trail: (point) => universe.spawnTrail(point),
     silhouette: (points) => {
       universe.revealSilhouette(points);

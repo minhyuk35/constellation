@@ -593,43 +593,11 @@ export class Universe {
     this.presenceState = new Uint8Array(n);
     this.presenceCursor = 0;
     this.presencePeople = [];
-    this.bridgeLines = new THREE.LineSegments(
-      new THREE.BufferGeometry(),
-      new THREE.LineBasicMaterial({
-        color: 0x9fc7ff,
-        transparent: true,
-        opacity: 0.4,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    );
-    this.bridgeLines.frustumCulled = false;
-    this.scene.add(this.bridgeLines);
   }
   // Presence updates arrive at the pose tracker's cadence (a handful of times a
   // second); the drift itself is interpolated every rendered frame so it stays smooth.
   setPresence(people) {
     this.presencePeople = people;
-  }
-  setBridges(pairs) {
-    if (!this.bridgeLines) return;
-    if (!pairs.length) {
-      this.bridgeLines.geometry.setDrawRange(0, 0);
-      return;
-    }
-    const positions = new Float32Array(pairs.length * 6);
-    pairs.forEach(({ a, b }, i) => {
-      const pa = this.toWorld(a),
-        pb = this.toWorld(b);
-      positions.set([pa.x, pa.y, 0, pb.x, pb.y, 0], i * 6);
-    });
-    this.bridgeLines.geometry.dispose();
-    this.bridgeLines.geometry = new THREE.BufferGeometry();
-    this.bridgeLines.geometry.setAttribute(
-      'position',
-      new THREE.Float32BufferAttribute(positions, 3),
-    );
-    this.bridgeLines.geometry.setDrawRange(0, pairs.length * 2);
   }
   // Recycles the oldest presence slot into a permanent, gently glowing footstep.
   spawnTrail(point) {

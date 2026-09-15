@@ -16,7 +16,6 @@ export const CONFIG = Object.freeze({
   poseStillHold: 0.6,
   poseSilhouetteHold: 2.4,
   poseSilhouetteDuration: 3.4,
-  poseBridgeMaxDistance: 0.55,
   poseTrailDistance: 0.05,
   poseTimeout: 4,
 });

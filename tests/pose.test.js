@@ -89,18 +89,17 @@ test('a person outside the interaction zone never counts as quiet', () => {
   assert.equal(controller.people.get('a').quiet, false);
 });
 
-test('people beyond the bridge distance are not connected, closer ones are', () => {
-  const controller = makeController(fakeVideo(), {});
-  const near = [
-    { x: 0.5, y: 0.5, quiet: false },
-    { x: 0.55, y: 0.5, quiet: false },
-  ];
-  const far = [
-    { x: 0.1, y: 0.5, quiet: false },
-    { x: 0.9, y: 0.5, quiet: false },
-  ];
-  assert.equal(controller.findBridges(near).length, 1);
-  assert.equal(controller.findBridges(far).length, 0);
+test('multiple visitors still drive ambient presence and stopping clears them', () => {
+  let people = [];
+  const controller = makeController(fakeVideo(), { presence: (value) => { people = value; } });
+  controller.integrate([
+    { ...poseAt(0.3, 0.5), id: 'left' },
+    { ...poseAt(0.6, 0.5), id: 'right' },
+  ], 0.1);
+  assert.equal(people.length, 2);
+  assert.ok(people[0].x > people[1].x, 'both visitors retain mirrored positions');
+  controller.stop();
+  assert.deepEqual(people, []);
 });
 
 test('walking a visible distance leaves a trail; standing still does not', () => {

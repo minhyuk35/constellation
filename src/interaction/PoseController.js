@@ -5,9 +5,9 @@ import { CONFIG, asset } from '../config.js';
 // second permission prompt, and critically no competition with Three.js's own
 // WebGL rendering (a GPU-backend model running on the main thread was
 // visibly stalling the render loop). Multiple visitors are tracked at once;
-// each becomes a soft point of gravity for the ambient star field and a
-// possible bridge to another visitor, echoing the exhibition brief's "다인원
-// 관계성 분석" (multi-visitor relationship analysis) beyond single-hand input.
+// each becomes a soft point of gravity for the ambient star field. Presence
+// uses particles only: connecting detections (including briefly cached tracks)
+// creates a stray line web that is unrelated to the visitor's constellation.
 export class PoseController {
   constructor(video, callbacks = {}) {
     this.video = video;
@@ -82,7 +82,6 @@ export class PoseController {
     this.worker = null;
     this.people.clear();
     this.callbacks.presence?.([]);
-    this.callbacks.bridges?.([]);
     this.callbacks.count?.(0);
   }
   // Called every render frame; internally throttled so a frame is only handed
@@ -176,20 +175,7 @@ export class PoseController {
         this.people.delete(id);
     const active = [...this.people.values()];
     this.callbacks.presence?.(active.map((p) => ({ x: p.x, y: p.y, quiet: p.quiet })));
-    this.callbacks.bridges?.(this.findBridges(active));
     this.callbacks.state?.(poses.length === 0 ? 'idle' : interacting ? 'interact' : 'approach');
     this.callbacks.count?.(active.length);
-  }
-  findBridges(people) {
-    const pairs = [];
-    for (let i = 0; i < people.length; i++)
-      for (let j = i + 1; j < people.length; j++) {
-        const a = people[i],
-          b = people[j];
-        const distance = Math.hypot(a.x - b.x, a.y - b.y);
-        if (distance > CONFIG.poseBridgeMaxDistance) continue;
-        pairs.push({ a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y } });
-      }
-    return pairs;
   }
 }
