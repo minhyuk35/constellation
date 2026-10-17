@@ -52,6 +52,11 @@ try {
       !document.getElementById('discovery').hidden,
   );
   await page.waitForTimeout(1800);
+  await page.locator('#creation-ticket').waitFor({ state: 'visible' });
+  const creatorQR = new URL(await page.locator('#ticket-link').getAttribute('href'));
+  assert.equal(creatorQR.pathname, '/create.html');
+  assert.ok(creatorQR.searchParams.get('id'));
+  assert.ok(creatorQR.hash.startsWith('#claim='));
   await page.screenshot({ path: 'tmp/qa/heart.png' });
   await page.mouse.move(720, 617);
   await page.mouse.down();

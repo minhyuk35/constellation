@@ -1,0 +1,16 @@
+.git/
+.vercel/
+node_modules/
+dist/
+tmp/
+**/.wrangler/
+**/.dev.vars*
+.env
+.env.*
+!.env.example
+exhibition-secrets.local.json
+worker/
+*.log
+public/wasm/
+public/models/*.task
+public/models/movenet-multipose/

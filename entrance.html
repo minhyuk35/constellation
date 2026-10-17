@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#070e18" />
+    <title>전시 입장 QR · Constellation</title>
+    <link rel="stylesheet" href="/styles/exhibition.css" />
+  </head>
+  <body class="entrance-page">
+    <main>
+      <a class="wordmark" href="sky.html">CONSTELLATION<span>우리가 남긴 하늘</span></a>
+      <p class="eyebrow">LOOK UP. SOMEONE WAS HERE.</p>
+      <h1>이 하늘에<br />당신을 초대합니다.</h1>
+      <p>QR을 스캔하고 휴대폰을 돌려보세요.<br />누군가 남긴 별과 이야기가 기다리고 있어요.</p>
+      <div class="entrance-qr"><img id="entrance-qr" alt="별자리 전시 입장 QR" /></div>
+      <a id="entrance-url" href="sky.html"></a>
+      <p id="entrance-status" role="status"></p>
+      <div class="entrance-actions">
+        <button id="print-qr" class="glass-button">인쇄하기</button
+        ><a id="download-qr" class="glass-button" download="constellation-entry-qr.png"
+          >QR 이미지 저장</a
+        >
+      </div>
+      <footer>로그인 없이, 누구나.<br />별을 만들지 않아도 이야기에 함께할 수 있어요.</footer>
+    </main>
+    <script type="module" src="/src/exhibition/entrance-main.js"></script>
+  </body>
+</html>

@@ -1,4 +1,5 @@
 import catalogue from './constellations/catalogue.json' with { type: 'json' };
+import imagined from './imagined/catalogue.json' with { type: 'json' };
 import { SEASONS, STORIES, ZODIAC } from './constellations/stories.js';
 // Coordinates use a square illustration space: x right, y up. The constellation
 // projections preserve the reference paths in the original demo (d3-celestial).
@@ -366,8 +367,10 @@ export const CONSTELLATIONS = catalogue
       (a.zodiac?.number ?? 99) - (b.zodiac?.number ?? 99) || a.name.localeCompare(b.name, 'ko'),
   );
 export const ZODIAC_SHAPES = CONSTELLATIONS.filter((s) => s.zodiac);
+export const IMAGINED_SHAPES = imagined;
 export const SHAPES = [
   ...CONSTELLATIONS,
   ...ORIGINAL_SHAPES.filter((s) => s.category === 'object'),
+  ...IMAGINED_SHAPES,
 ];
 export const SHAPE_MAP = new Map(SHAPES.map((s) => [s.id, s]));

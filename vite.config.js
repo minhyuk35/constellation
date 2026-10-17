@@ -3,7 +3,10 @@ import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   base: './',
-  server: { watch: { ignored: ['**/tmp/**', '**/public/wasm/**', '**/public/models/**'] } },
+  server: {
+    proxy: { '/api': 'http://127.0.0.1:8787' },
+    watch: { ignored: ['**/tmp/**', '**/.wrangler/**', '**/public/wasm/**', '**/public/models/**'] },
+  },
   resolve: {
     alias: {
       // @tensorflow-models/pose-detection statically imports the BlazePose
@@ -33,6 +36,10 @@ export default defineConfig({
       input: {
         main: 'index.html',
         share: 'share.html',
+        sky: 'sky.html',
+        create: 'create.html',
+        entrance: 'entrance.html',
+        vr: 'vr.html',
       },
       output: {
         manualChunks(id) {

@@ -1,3 +1,5 @@
+import { CONFIG } from '../config.js';
+
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z || 0) - (b.z || 0));
 // Normalize distances by palm size and use hysteresis to avoid pinch flicker.
 export function classifyHand(landmarks, previous = 'point') {
@@ -22,10 +24,35 @@ export function classifyHand(landmarks, previous = 'point') {
   const gesture =
     extended === 0
       ? 'fist'
-      : pinchRatio < (previous === 'pinch' ? 0.48 : 0.32)
+      : pinchRatio < (previous === 'pinch' ? CONFIG.handGestures.pinchExit : CONFIG.handGestures.pinchEnter)
         ? 'pinch'
         : extended >= 4
           ? 'open'
           : 'point';
   return { gesture, pinchRatio, extended };
+}
+
+// Distance hysteresis alone cannot reject a one-frame fist/open misclassification.
+// Require the new state on consecutive inference samples spanning confirmMs.
+export class HandGestureState {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.gesture = 'point';
+    this.pending = null;
+    this.pendingSince = 0;
+  }
+  update(landmarks, timestamp) {
+    const { gesture } = classifyHand(landmarks, this.gesture);
+    if (gesture === this.gesture) this.pending = null;
+    else if (gesture !== this.pending) {
+      this.pending = gesture;
+      this.pendingSince = timestamp;
+    } else if (timestamp - this.pendingSince >= CONFIG.handGestures.confirmMs) {
+      this.gesture = gesture;
+      this.pending = null;
+    }
+    return this.gesture;
+  }
 }

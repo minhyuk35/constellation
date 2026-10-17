@@ -1,0 +1,1202 @@
+{
+  "imagined-rocket": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 0,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0.2543859649122807,
+      "h": 0.2511961722488038
+    }
+  },
+  "imagined-satellite": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 1,
+    "credit": "generated",
+    "rect": {
+      "x": 0.2543859649122807,
+      "y": 0,
+      "w": 0.24561403508771928,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-orbit": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 2,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0,
+      "w": 0.25757575757575757,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-eclipse": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 3,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7575757575757576,
+      "y": 0,
+      "w": 0.24242424242424243,
+      "h": 0.2527910685805423
+    }
+  },
+  "imagined-radar": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 4,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.2511961722488038,
+      "w": 0.24960127591706538,
+      "h": 0.24322169059011164
+    }
+  },
+  "imagined-atom": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 5,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.24960127591706538,
+      "w": 0.2503987240829346,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-zap": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 6,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.24960127591706538,
+      "w": 0.24960127591706538,
+      "h": 0.24800637958532695
+    }
+  },
+  "imagined-flame": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 7,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.2527910685805423,
+      "w": 0.2503987240829346,
+      "h": 0.24720893141945774
+    }
+  },
+  "imagined-snowflake": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 8,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.4944178628389155,
+      "w": 0.24720893141945774,
+      "h": 0.24880382775119617
+    }
+  },
+  "imagined-wind": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 9,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24720893141945774,
+      "y": 0.5,
+      "w": 0.2535885167464115,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-cloud-rain": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 10,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5007974481658692,
+      "y": 0.49760765550239233,
+      "w": 0.24880382775119617,
+      "h": 0.25199362041467305
+    }
+  },
+  "imagined-rainbow": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 11,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.5,
+      "w": 0.2503987240829346,
+      "h": 0.22567783094098884
+    }
+  },
+  "imagined-mountain-snow": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 12,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.7432216905901117,
+      "w": 0.2511961722488038,
+      "h": 0.2567783094098884
+    }
+  },
+  "imagined-waves": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 13,
+    "credit": "generated",
+    "rect": {
+      "x": 0.2511961722488038,
+      "y": 0.7496012759170654,
+      "w": 0.24960127591706538,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-shell": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 14,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5007974481658692,
+      "y": 0.7496012759170654,
+      "w": 0.24880382775119617,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-leaf": {
+    "src": "art/imagined/atlas-01.png",
+    "grid": 4,
+    "tile": 15,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.7256778309409888,
+      "w": 0.2503987240829346,
+      "h": 0.2743221690590112
+    }
+  },
+  "imagined-sprout": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 0,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0.24960127591706538,
+      "h": 0.2567783094098884
+    }
+  },
+  "imagined-clover": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 1,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0,
+      "w": 0.2503987240829346,
+      "h": 0.25757575757575757
+    }
+  },
+  "imagined-tree-palm": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 2,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0,
+      "w": 0.24960127591706538,
+      "h": 0.25757575757575757
+    }
+  },
+  "imagined-tree-pine": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 3,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0,
+      "w": 0.2503987240829346,
+      "h": 0.25757575757575757
+    }
+  },
+  "imagined-turtle": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 4,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.2567783094098884,
+      "w": 0.25598086124401914,
+      "h": 0.24322169059011164
+    }
+  },
+  "imagined-snail": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 5,
+    "credit": "generated",
+    "rect": {
+      "x": 0.25598086124401914,
+      "y": 0.25757575757575757,
+      "w": 0.2671451355661882,
+      "h": 0.24242424242424243
+    }
+  },
+  "imagined-squirrel": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 6,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5231259968102073,
+      "y": 0.25757575757575757,
+      "w": 0.23365231259968103,
+      "h": 0.24242424242424243
+    }
+  },
+  "imagined-bug": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 7,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7567783094098883,
+      "y": 0.25757575757575757,
+      "w": 0.24322169059011164,
+      "h": 0.24242424242424243
+    }
+  },
+  "imagined-origami": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 8,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.5,
+      "w": 0.2759170653907496,
+      "h": 0.24082934609250398
+    }
+  },
+  "imagined-feather": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 9,
+    "credit": "generated",
+    "rect": {
+      "x": 0.2759170653907496,
+      "y": 0.5,
+      "w": 0.2240829346092504,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-paw-print": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 10,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.5,
+      "w": 0.24960127591706538,
+      "h": 0.23205741626794257
+    }
+  },
+  "imagined-bone": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 11,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.5,
+      "w": 0.2503987240829346,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-egg": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 12,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.740829346092504,
+      "w": 0.24960127591706538,
+      "h": 0.259170653907496
+    }
+  },
+  "imagined-worm": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 13,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.7496012759170654,
+      "w": 0.25199362041467305,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-train-front": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 14,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5015948963317385,
+      "y": 0.7320574162679426,
+      "w": 0.22647527910685805,
+      "h": 0.2679425837320574
+    }
+  },
+  "imagined-bus": {
+    "src": "art/imagined/atlas-02.png",
+    "grid": 4,
+    "tile": 15,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7280701754385965,
+      "y": 0.7496012759170654,
+      "w": 0.2719298245614035,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-bike": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 0,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0.2647527910685805,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-plane": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 1,
+    "credit": "generated",
+    "rect": {
+      "x": 0.2647527910685805,
+      "y": 0,
+      "w": 0.23524720893141945,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-sailboat": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 2,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0,
+      "w": 0.24960127591706538,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-cable-car": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 3,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0,
+      "w": 0.2503987240829346,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-forklift": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 4,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.24960127591706538,
+      "w": 0.2567783094098884,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-tractor": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 5,
+    "credit": "generated",
+    "rect": {
+      "x": 0.2567783094098884,
+      "y": 0.24960127591706538,
+      "w": 0.2623604465709729,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-ship-wheel": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 6,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5191387559808612,
+      "y": 0.24960127591706538,
+      "w": 0.23046251993620415,
+      "h": 0.2511961722488038
+    }
+  },
+  "imagined-anchor": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 7,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.24960127591706538,
+      "w": 0.2503987240829346,
+      "h": 0.2623604465709729
+    }
+  },
+  "imagined-tent": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 8,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.5,
+      "w": 0.26953748006379585,
+      "h": 0.24481658692185007
+    }
+  },
+  "imagined-backpack": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 9,
+    "credit": "generated",
+    "rect": {
+      "x": 0.26953748006379585,
+      "y": 0.5,
+      "w": 0.23046251993620415,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-luggage": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 10,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.5007974481658692,
+      "w": 0.24960127591706538,
+      "h": 0.24880382775119617
+    }
+  },
+  "imagined-map": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 11,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.5119617224880383,
+      "w": 0.2503987240829346,
+      "h": 0.23763955342902712
+    }
+  },
+  "imagined-signpost": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 12,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.74481658692185,
+      "w": 0.24960127591706538,
+      "h": 0.2551834130781499
+    }
+  },
+  "imagined-flag": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 13,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.7496012759170654,
+      "w": 0.2535885167464115,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-footprints": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 14,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5031897926634769,
+      "y": 0.7496012759170654,
+      "w": 0.24401913875598086,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-binoculars": {
+    "src": "art/imagined/atlas-03.png",
+    "grid": 4,
+    "tile": 15,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7472089314194578,
+      "y": 0.7496012759170654,
+      "w": 0.2527910685805423,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-life-buoy": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 0,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0.24960127591706538,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-fence": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 1,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0,
+      "w": 0.2503987240829346,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-camera": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 2,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0,
+      "w": 0.24960127591706538,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-headphones": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 3,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0,
+      "w": 0.2503987240829346,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-guitar": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 4,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.24960127591706538,
+      "w": 0.24960127591706538,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-piano": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 5,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.24960127591706538,
+      "w": 0.2503987240829346,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-drum": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 6,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.24960127591706538,
+      "w": 0.24960127591706538,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-mic-vocal": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 7,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.24960127591706538,
+      "w": 0.2503987240829346,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-cassette-tape": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 8,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.5,
+      "w": 0.24960127591706538,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-film": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 9,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.5,
+      "w": 0.2503987240829346,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-clapperboard": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 10,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.5,
+      "w": 0.24960127591706538,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-radio": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 11,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.5,
+      "w": 0.2503987240829346,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-book-open": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 12,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.7496012759170654,
+      "w": 0.24960127591706538,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-notebook-pen": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 13,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.7496012759170654,
+      "w": 0.2503987240829346,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-graduation-cap": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 14,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.7496012759170654,
+      "w": 0.24960127591706538,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-palette": {
+    "src": "art/imagined/atlas-04.png",
+    "grid": 4,
+    "tile": 15,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.7496012759170654,
+      "w": 0.2503987240829346,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-paintbrush": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 0,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0.25199362041467305,
+      "h": 0.2511961722488038
+    }
+  },
+  "imagined-scissors": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 1,
+    "credit": "generated",
+    "rect": {
+      "x": 0.25199362041467305,
+      "y": 0,
+      "w": 0.25757575757575757,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-ruler": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 2,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5095693779904307,
+      "y": 0,
+      "w": 0.24003189792663476,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-puzzle": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 3,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0,
+      "w": 0.2503987240829346,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-paperclip": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 4,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.2511961722488038,
+      "w": 0.24960127591706538,
+      "h": 0.24720893141945774
+    }
+  },
+  "imagined-stamp": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 5,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.24960127591706538,
+      "w": 0.2503987240829346,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-key-round": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 6,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.24960127591706538,
+      "w": 0.24960127591706538,
+      "h": 0.24880382775119617
+    }
+  },
+  "imagined-lock-keyhole": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 7,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.24960127591706538,
+      "w": 0.2503987240829346,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-lightbulb": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 8,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.4984051036682616,
+      "w": 0.24960127591706538,
+      "h": 0.2511961722488038
+    }
+  },
+  "imagined-lamp-desk": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 9,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.5,
+      "w": 0.2503987240829346,
+      "h": 0.24242424242424243
+    }
+  },
+  "imagined-armchair": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 10,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.4984051036682616,
+      "w": 0.24960127591706538,
+      "h": 0.24003189792663476
+    }
+  },
+  "imagined-bed-double": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 11,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.5,
+      "w": 0.2503987240829346,
+      "h": 0.24003189792663476
+    }
+  },
+  "imagined-bath": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 12,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.7496012759170654,
+      "w": 0.2647527910685805,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-door-open": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 13,
+    "credit": "generated",
+    "rect": {
+      "x": 0.2647527910685805,
+      "y": 0.7424242424242424,
+      "w": 0.23524720893141945,
+      "h": 0.25757575757575757
+    }
+  },
+  "imagined-fan": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 14,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.7384370015948963,
+      "w": 0.24960127591706538,
+      "h": 0.26156299840510366
+    }
+  },
+  "imagined-washing-machine": {
+    "src": "art/imagined/atlas-05.png",
+    "grid": 4,
+    "tile": 15,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.7400318979266348,
+      "w": 0.2503987240829346,
+      "h": 0.25996810207336524
+    }
+  },
+  "imagined-mail": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 0,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0.24960127591706538,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-send": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 1,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0,
+      "w": 0.25199362041467305,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-gift": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 2,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5015948963317385,
+      "y": 0,
+      "w": 0.2503987240829346,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-ribbon": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 3,
+    "credit": "generated",
+    "rect": {
+      "x": 0.751993620414673,
+      "y": 0,
+      "w": 0.24800637958532695,
+      "h": 0.2543859649122807
+    }
+  },
+  "imagined-gem": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 4,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.24960127591706538,
+      "w": 0.2543859649122807,
+      "h": 0.23205741626794257
+    }
+  },
+  "imagined-bell": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 5,
+    "credit": "generated",
+    "rect": {
+      "x": 0.2543859649122807,
+      "y": 0.24960127591706538,
+      "w": 0.24561403508771928,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-hourglass": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 6,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.24960127591706538,
+      "w": 0.22807017543859648,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-glasses": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 7,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7280701754385965,
+      "y": 0.2543859649122807,
+      "w": 0.2719298245614035,
+      "h": 0.24561403508771928
+    }
+  },
+  "imagined-ice-cream-cone": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 8,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.48165869218500795,
+      "w": 0.24960127591706538,
+      "h": 0.2567783094098884
+    }
+  },
+  "imagined-cake-slice": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 9,
+    "credit": "generated",
+    "rect": {
+      "x": 0.24960127591706538,
+      "y": 0.5,
+      "w": 0.2503987240829346,
+      "h": 0.24481658692185007
+    }
+  },
+  "imagined-apple": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 10,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.5,
+      "w": 0.24960127591706538,
+      "h": 0.24960127591706538
+    }
+  },
+  "imagined-cherry": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 11,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.5,
+      "w": 0.2503987240829346,
+      "h": 0.23205741626794257
+    }
+  },
+  "imagined-grape": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 12,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.7384370015948963,
+      "w": 0.2511961722488038,
+      "h": 0.26156299840510366
+    }
+  },
+  "imagined-banana": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 13,
+    "credit": "generated",
+    "rect": {
+      "x": 0.2511961722488038,
+      "y": 0.74481658692185,
+      "w": 0.24960127591706538,
+      "h": 0.2551834130781499
+    }
+  },
+  "imagined-citrus": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 14,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5007974481658692,
+      "y": 0.7496012759170654,
+      "w": 0.24880382775119617,
+      "h": 0.2503987240829346
+    }
+  },
+  "imagined-carrot": {
+    "src": "art/imagined/atlas-06.png",
+    "grid": 4,
+    "tile": 15,
+    "credit": "generated",
+    "rect": {
+      "x": 0.7496012759170654,
+      "y": 0.7320574162679426,
+      "w": 0.2503987240829346,
+      "h": 0.2679425837320574
+    }
+  },
+  "imagined-pizza": {
+    "src": "art/imagined/atlas-07.png",
+    "grid": 2,
+    "tile": 0,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 0.5039872408293461,
+      "h": 0.5079744816586922
+    }
+  },
+  "imagined-sandwich": {
+    "src": "art/imagined/atlas-07.png",
+    "grid": 2,
+    "tile": 1,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5039872408293461,
+      "y": 0,
+      "w": 0.4960127591706539,
+      "h": 0.5119617224880383
+    }
+  },
+  "imagined-croissant": {
+    "src": "art/imagined/atlas-07.png",
+    "grid": 2,
+    "tile": 2,
+    "credit": "generated",
+    "rect": {
+      "x": 0,
+      "y": 0.5079744816586922,
+      "w": 0.5,
+      "h": 0.4920255183413078
+    }
+  },
+  "imagined-candy": {
+    "src": "art/imagined/atlas-07.png",
+    "grid": 2,
+    "tile": 3,
+    "credit": "generated",
+    "rect": {
+      "x": 0.5,
+      "y": 0.5119617224880383,
+      "w": 0.5,
+      "h": 0.4880382775119617
+    }
+  }
+}

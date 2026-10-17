@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#070e18" />
+    <title>별에 이야기 남기기 · Constellation</title>
+    <link rel="stylesheet" href="/styles/exhibition.css" />
+  </head>
+  <body class="form-page">
+    <main class="creator-card">
+      <a class="wordmark" href="sky.html">CONSTELLATION<span>우리가 남긴 하늘</span></a>
+      <p class="eyebrow">YOUR LIGHT, YOUR STORY</p>
+      <h1>이 별은 어떤<br />이야기를 품고 있나요?</h1>
+      <canvas
+        id="creation-preview"
+        width="640"
+        height="360"
+        aria-label="내가 만든 별자리 미리보기"
+      ></canvas>
+      <p id="creation-title" class="preview-title"></p>
+      <form id="creator-form" hidden>
+        <label for="nickname">남기고 싶은 이름 <span>24자 이내</span></label
+        ><input
+          id="nickname"
+          name="nickname"
+          required
+          maxlength="24"
+          autocomplete="nickname"
+          placeholder="별에 남길 나의 이름"
+        />
+        <label for="creator-message">별에 담은 이야기 <span>500자 이내</span></label
+        ><textarea
+          id="creator-message"
+          name="message"
+          required
+          maxlength="500"
+          rows="4"
+          placeholder="오늘의 마음, 누군가에게 전하고 싶은 말…"
+        ></textarea>
+        <p class="privacy-note">
+          닉네임과 이야기는 전시 관람객에게 공개됩니다.<br />한 번 하늘에 띄운 이야기는 수정할 수
+          없어요.
+        </p>
+        <button type="submit" class="primary-button">우리의 하늘에 띄우기 <span>✧</span></button>
+      </form>
+      <p id="creator-status" role="status" aria-live="polite">별자리를 불러오고 있어요.</p>
+      <a id="view-sky" class="primary-button" href="sky.html" hidden>별자리 보러 가기 ↗</a>
+      <footer>하나의 손짓이, 함께 바라볼 하늘이 됩니다.</footer>
+    </main>
+    <script type="module" src="/src/exhibition/create-main.js"></script>
+  </body>
+</html>

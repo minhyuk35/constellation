@@ -668,6 +668,9 @@ button:active:not(:disabled) {
 }
 .hand-cursor {
   position: fixed;
+  left: 0;
+  top: 0;
+  will-change: transform;
   width: 38px;
   height: 38px;
   border: 1px solid #b2dcde88;

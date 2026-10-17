@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#040913" />
+    <title>Constellation · VR 우주</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E✧%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/styles/vr.css" />
+  </head>
+  <body>
+    <main id="vr-stage" aria-label="손으로 별자리를 만드는 360도 VR 우주"></main>
+    <header class="vr-chrome">
+      <a href="./">constellation<span>.</span></a>
+      <p>VR STUDIO · YOUR OWN UNIVERSE</p>
+      <span id="vr-count">0개의 별자리</span>
+    </header>
+    <section class="vr-welcome vr-chrome">
+      <p class="eyebrow">A UNIVERSE AROUND YOU</p>
+      <h1>손끝에 놓은 별,<br />나를 둘러싼 우주.</h1>
+      <p>
+        빈 공간을 집어 별을 만들고, 별을 집어서 움직여보세요.<br />완성한 별자리를 띄우면 다음
+        이야기를 만들 수 있어요.
+      </p>
+      <button id="vr-enter" disabled>Meta Quest로 VR 시작</button>
+      <p id="vr-status" role="status">VR 지원을 확인하고 있어요.</p>
+    </section>
+    <footer class="vr-chrome">
+      <div class="vr-tools">
+        <button id="vr-finish">완성해서 띄우기 ↗</button><button id="vr-undo">되돌리기</button
+        ><button id="vr-erase" aria-pressed="false">별 지우기</button>
+      </div>
+      <p>
+        마우스 미리보기 · 클릭 / 드래그로 별 놓기 · 오른쪽 드래그로 둘러보기 · 휠로 놓을 거리 조절
+      </p>
+      <small
+        >VR에서 만든 별자리는 이 페이지를 닫을 때까지 유지됩니다. · Art: Johan Meuris / Stellarium ·
+        <a href="https://artlibre.org/licence/lal/en/" target="_blank" rel="noopener noreferrer"
+          >Free Art License 1.3</a
+        >
+        · 창작 삽화: AI 생성</small
+      >
+    </footer>
+    <script type="module" src="/src/vr/main.js"></script>
+  </body>
+</html>

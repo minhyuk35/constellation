@@ -28,6 +28,7 @@ self.onmessage = async ({ data }) => {
       const result = detector.detectForVideo(data.bitmap, data.timestamp);
       self.postMessage({
         type: 'result',
+        timestamp: data.timestamp,
         landmarks: result.landmarks,
         handedness: result.handedness,
       });

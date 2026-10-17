@@ -1,0 +1,117 @@
+#creation-ticket {
+  position: fixed;
+  right: 25px;
+  top: 95px;
+  width: 240px;
+  padding: 22px;
+  background: #0d1a27f2;
+  border: 1px solid #b6d8e13d;
+  border-radius: 15px;
+  box-shadow: 0 14px 80px #0008;
+  z-index: 35;
+  text-align: center;
+  backdrop-filter: blur(20px);
+}
+#creation-ticket[hidden] {
+  display: none;
+}
+#creation-ticket .eyebrow {
+  font-size: 8px;
+  letter-spacing: 0.17em;
+  color: #98b8c7;
+}
+#creation-ticket h2 {
+  font-size: 20px;
+  margin: 10px 0 18px;
+  font-weight: 400;
+}
+#creation-ticket img {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
+  background: #fff;
+}
+#ticket-link[hidden], #ticket-occupied[hidden] { display: none; }
+#ticket-occupied { color: #d8c695; font-size: 72px; line-height: 1.4; text-shadow: 0 0 25px #d8c69555; }
+#creation-ticket[data-state='occupied'] { border-color: #d8c69566; }
+#creation-ticket[data-state='occupied'] #ticket-message { color: #eddfbc; font-size: 14px; }
+#creation-ticket p:not(.eyebrow) {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #b4cbd6;
+}
+#creation-ticket small {
+  font-size: 9px;
+  color: #8dabb9;
+}
+#ticket-close {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  background: none;
+  border: none;
+  color: #bdd1dc;
+  font-size: 23px;
+  padding: 3px 9px;
+}
+.exhibition-links {
+  position: fixed;
+  right: 26px;
+  bottom: 88px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  z-index: 8;
+}
+.exhibition-links a,
+.exhibition-links button {
+  font: inherit;
+  font-size: 10px;
+  color: #9ab1bf;
+  background: none;
+  border: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+#exhibition-dialog input {
+  display: block;
+  width: 100%;
+  margin: 12px 0 20px;
+  padding: 12px;
+  color: inherit;
+  background: #10202e;
+  border: 1px solid #b6d8e13d;
+  border-radius: 7px;
+}
+#exhibition-dialog label {
+  font-size: 12px;
+  color: #a4bac7;
+}
+#connection-status {
+  font-size: 12px;
+  color: #a4bac7;
+}
+@media (max-width: 760px) {
+  #creation-ticket {
+    right: 12px;
+    top: 76px;
+    width: 190px;
+    padding: 16px;
+  }
+  #creation-ticket img {
+    width: 134px;
+    height: 134px;
+  }
+  .exhibition-links {
+    right: 16px;
+    bottom: 145px;
+    gap: 10px;
+  }
+  .exhibition-links a,
+  .exhibition-links button {
+    font-size: 9px;
+  }
+}
+body.immersive .exhibition-links {
+  display: none;
+}

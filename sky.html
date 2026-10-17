@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#070e18" />
+    <meta name="referrer" content="no-referrer" />
+    <title>함께 남긴 하늘 · Constellation</title>
+    <link rel="stylesheet" href="/styles/exhibition.css" />
+  </head>
+  <body class="sky-page">
+    <video id="ar-camera" autoplay playsinline muted aria-hidden="true"></video>
+    <div id="sky-stage" aria-label="관람객들이 만든 별자리 하늘"></div>
+    <div class="sky-vignette"></div>
+    <header class="sky-header">
+      <a class="wordmark" href="sky.html">CONSTELLATION<span>우리가 남긴 하늘</span></a
+      ><span class="glass-button sky-counter">떠 있는 별자리 <span id="sky-count">0</span></span>
+    </header>
+    <div id="sky-reticle" aria-hidden="true"><span></span></div>
+    <div id="focus-label" class="focus-label">별자리를 화면 중앙에 담아보세요</div>
+    <p id="sky-guide" class="sky-guide" hidden></p>
+    <p id="sky-status" class="sky-status" role="status" aria-live="polite">
+      하늘을 연결하고 있어요
+    </p>
+    <div class="sky-tools">
+      <button id="motion-button" class="glass-button" aria-pressed="false">방향 센서 켜기</button
+      ><button id="camera-button" class="glass-button" aria-pressed="false">카메라 켜기</button
+      ><button id="capture-button" class="glass-button">사진 저장</button>
+    </div>
+    <button
+      id="inspect-button"
+      class="inspect-button"
+      disabled
+      aria-label="중앙 별자리의 이야기 보기"
+    >
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M6 11V6h5m10 0h5v5m0 10v5h-5m-10 0H6v-5M16 10v12m-6-6h12" /></svg
+      ><span>이야기 보기</span>
+    </button>
+    <section id="sky-welcome" class="welcome-panel">
+      <p class="eyebrow">A SKY WE MADE TOGETHER</p>
+      <div class="orbit-mark" aria-hidden="true">✧</div>
+      <h1>당신이 남긴 별,<br />누군가의 하늘에.</h1>
+      <p>
+        우리가 만든 별자리 중 최대 30개가 무작위로 떠 있어요.<br />휴대폰을 들어 주변을 둘러보고, 중앙에 담아 이야기를 열어보세요.
+      </p>
+      <button id="enter-ar" class="primary-button">카메라로 하늘 열기 <span>↗</span></button>
+      <button id="enter-sky" class="text-button">화면으로 먼저 둘러보기</button>
+      <small
+        >카메라 영상은 저장하거나 전송하지 않아요.<br />카메라·방향 권한은 입장할 때
+        요청합니다.</small
+      >
+    </section>
+    <dialog id="story-dialog" class="story-sheet">
+      <button class="close-sheet" aria-label="닫기">×</button>
+      <p class="eyebrow">SOMEONE LEFT A LIGHT</p>
+      <h2 id="story-title"></h2>
+      <p class="byline">만든 사람 <strong id="story-author"></strong></p>
+      <p id="story-message" class="story-message"></p>
+      <p id="story-art-credit" class="art-credit" hidden></p>
+      <button id="like-button" class="like-button" aria-pressed="false">
+        ♡ 좋아요 <span id="like-count">0</span>
+      </button>
+      <div class="comments-heading">
+        <h3>별에 남기는 말</h3>
+        <button id="refresh-comments" class="text-button">새로고침</button>
+      </div>
+      <p id="story-status" role="status"></p>
+      <ul id="comments" class="comments"></ul>
+      <button id="more-comments" class="text-button" hidden>이전 댓글 더 보기</button>
+      <form id="comment-form">
+        <label for="comment-body">익명으로 한마디</label>
+        <div class="comment-input">
+          <input
+            id="comment-body"
+            required
+            maxlength="300"
+            placeholder="이 별에 마음을 남겨보세요"
+            autocomplete="off"
+          /><button type="submit" class="primary-button">남기기</button>
+        </div>
+      </form>
+    </dialog>
+    <script type="module" src="/src/exhibition/sky-main.js"></script>
+  </body>
+</html>

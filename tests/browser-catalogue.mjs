@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
-import { CONSTELLATIONS } from '../src/data/shapes.js';
+import { CONSTELLATIONS, IMAGINED_SHAPES } from '../src/data/shapes.js';
 import { artwork } from '../src/data/art.js';
 const executablePath =
   process.env.CHROME_PATH ||
@@ -25,6 +25,12 @@ page.on('console', (m) => {
 });
 mkdirSync('tmp/qa', { recursive: true });
 try {
+  // Catalogue browsing now auto-issues creator QR codes. This visual/texture
+  // test uses isolated draft responses instead of filling the exhibition DB.
+  await page.route('**/api/constellations', async route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    await route.fulfill({ status: 201, json: { id: crypto.randomUUID() } });
+  });
   await page.goto(process.env.TEST_URL || 'http://127.0.0.1:5173/');
   await page.waitForSelector('#stage canvas');
   // In this isolated test page only, retain the scene to inspect actual GPU
@@ -57,7 +63,16 @@ try {
   assert.equal(await page.locator('.library-card').count(), summer);
   await page.locator('#library-season').selectOption('');
   await page.screenshot({ path: 'tmp/qa/all-constellations.png' });
-  for (const shape of CONSTELLATIONS) {
+  await page.locator('[data-filter="object"]').click();
+  assert.equal(await page.locator('.library-card').count(), 112);
+  await page.locator('#library-search').fill('로켓');
+  assert.equal(await page.locator('.library-card').count(), 1);
+  assert.equal(await page.locator('.library-card').getAttribute('data-shape'), 'imagined-rocket');
+  await page.locator('#library-search').fill('');
+  await page.screenshot({ path: 'tmp/qa/imagined-library.png' });
+  await page.locator('[data-filter="all"]').click();
+  assert.equal(await page.locator('.library-card').count(), 200);
+  for (const shape of [...CONSTELLATIONS, ...IMAGINED_SHAPES]) {
     if (!(await page.locator('#library-dialog').isVisible()))
       await page.locator('#nav-library').click();
     await page.locator(`[data-shape="${shape.id}"]`).click();
@@ -84,9 +99,9 @@ try {
     assert.equal(state.grid, artwork(shape).grid, shape.id);
     assert.equal(state.edges, shape.edges.length, shape.id);
     assert.ok(state.cache <= 12, 'GPU texture cache limit');
-    if (['Leo', 'Tau', 'Cyg', 'Ser'].includes(shape.abbr)) {
+    if (['Leo', 'Tau', 'Cyg', 'Ser'].includes(shape.abbr) || ['imagined-rocket', 'imagined-bike', 'imagined-grape'].includes(shape.id)) {
       await page.waitForTimeout(1800);
-      await page.screenshot({ path: `tmp/qa/constellation-${shape.abbr}.png` });
+      await page.screenshot({ path: `tmp/qa/constellation-${shape.abbr || shape.id}.png` });
     }
   }
   // Rapid switching must never apply a late image from the preceding shape.
@@ -109,8 +124,8 @@ try {
   await page.locator('#nav-library').click();
   await page.locator('[data-shape="canis-minor"]').click();
   await page.locator('#qr-button').click();
-  assert.equal(await page.locator('#qr-dialog').isVisible(), true);
-  await page.locator('#qr-dialog .close-dialog').click();
+  await page.locator('#creation-ticket').waitFor({ state: 'visible' });
+  await page.locator('#ticket-close').click();
   await page.locator('#nav-archive').click();
   await page.locator('.archive-entry').first().click();
   assert.equal(await page.locator('#result-name').innerText(), '작은개자리');
@@ -142,9 +157,17 @@ try {
     return min;
   });
   assert.ok(minGap >= 20, `mobile stars too close: ${minGap}px`);
+  await page.locator('#nav-library').click();
+  await page.locator('[data-filter="object"]').click();
+  await page.locator('#library-search').fill('로켓');
+  await page.locator('[data-shape="imagined-rocket"]').click();
+  assert.equal(await page.locator('#result-name').innerText(), '로켓');
+  await page.waitForTimeout(1800);
+  await page.screenshot({ path: 'tmp/qa/imagined-mobile.png' });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(errors, []);
   console.log(
-    'PASS: all 88 presets, all artwork textures, 12 zodiac dates, search, seasons, GPU cache, rapid switching, small-star QR/archive, mobile spacing.',
+    'PASS: 88 official and 100 new imagined presets/textures, 200-entry count, search, seasons, GPU cache, rapid switching, small-star QR/archive, mobile layout.',
   );
 } finally {
   await browser.close();

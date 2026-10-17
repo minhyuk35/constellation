@@ -6,6 +6,28 @@ export const CONFIG = Object.freeze({
   maxArchive: 16,
   fistHold: 1050,
   handLostAfter: 250,
+  handDetectInterval: 33,
+  handGrabRadius: 76, // CSS pixels; only hand picking, not mouse or fist placement.
+  handControl: Object.freeze({
+    enabled: true,
+    armMs: 1000,
+    releaseMs: 2200,
+    sampleGapMs: 300,
+    matchRadius: 0.20,
+    ambiguityRadius: 0.10,
+    centerMargin: 0.25,
+  }),
+  handMotion: Object.freeze({
+    // Screen CSS pixels and seconds; independent of camera resolution / DPR.
+    minCutoff: 1.5,
+    beta: 0.025,
+    derivativeCutoff: 1,
+    deadZone: 1.25,
+    movingDeadZone: 0.25,
+    responsiveSpeed: 350,
+    interpolationMs: 24,
+  }),
+  handGestures: Object.freeze({ pinchEnter: 0.32, pinchExit: 0.48, confirmMs: 30 }),
   particleCount: 9500,
   presenceCount: 360,
   poseDetectInterval: 110,

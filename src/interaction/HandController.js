@@ -1,12 +1,15 @@
 import { CONFIG, asset } from '../config.js';
-import { classifyHand } from './gestures.js';
+import { HandGestureState } from './gestures.js';
+import { HandMotion } from './HandMotion.js';
+import { HandControlGate } from './HandControlGate.js';
 
 export class HandController {
-  constructor(video, stage, model, callbacks) {
+  constructor(video, stage, model, callbacks, { exclusive = CONFIG.handControl.enabled } = {}) {
     this.video = video;
     this.stage = stage;
     this.model = model;
     this.callbacks = callbacks;
+    this.gate = exclusive ? new HandControlGate() : null;
     this.slots = [this.makeSlot(), this.makeSlot()];
     this.active = false;
     this.loading = false;
@@ -14,6 +17,7 @@ export class HandController {
     this.cursorLayer = document.getElementById('hand-cursors');
     this.lastFrame = 0;
     this.lastVideo = -1;
+    this.lastSample = -Infinity;
     window.addEventListener('pagehide', () => this.stop());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.releaseAll();
@@ -23,6 +27,10 @@ export class HandController {
     return {
       x: 0.5,
       y: 0.5,
+      rawX: 0.5,
+      rawY: 0.5,
+      motion: new HandMotion(),
+      gestures: new HandGestureState(),
       seen: 0,
       gesture: 'lost',
       held: null,
@@ -44,7 +52,7 @@ export class HandController {
           facingMode: 'user',
           width: { ideal: 640 },
           height: { ideal: 480 },
-          frameRate: { ideal: 24, max: 30 },
+          frameRate: { ideal: 30, max: 30 },
         },
         audio: false,
       });
@@ -91,8 +99,10 @@ export class HandController {
       });
       if (generation !== this.generation) return;
       worker.onmessage = ({ data }) => {
+        if (generation !== this.generation || !this.active) return;
         this.busy = false;
-        if (data.type === 'result') this.process(data.landmarks, performance.now());
+        if (data.type === 'result')
+          this.process(data.landmarks, performance.now(), data.timestamp, data.handedness);
         else if (data.type === 'error') {
           this.stop();
           this.callbacks.status('손 인식이 중단되었습니다. 카메라를 다시 연결해 주세요.');
@@ -103,6 +113,9 @@ export class HandController {
         this.callbacks.status('손 인식이 중단되었습니다. 카메라를 다시 연결해 주세요.');
       };
       this.active = true;
+      this.lastFrame = 0;
+      this.lastVideo = -1;
+      this.lastSample = -Infinity;
       this.busy = false;
       this.loading = false;
       this.callbacks.status('active');
@@ -121,12 +134,30 @@ export class HandController {
     }
   }
   tick(now) {
-    if (!this.active || document.hidden) return;
-    for (const slot of this.slots)
-      if (slot.seen && now - slot.seen > CONFIG.handLostAfter) this.release(slot);
+    if (!this.active) return;
+    if (document.hidden || document.querySelector('dialog[open]')) {
+      this.releaseAll();
+      if (this.gate?.owner) this.gate.needsRearm = true;
+      return;
+    }
+    // Runs on every Three.js render frame, even while inference is busy.
+    this.slots.forEach((slot, i) => {
+      if (slot.gesture === 'lost') return;
+      if (now - slot.seen > CONFIG.handLostAfter) {
+        this.release(slot);
+        return;
+      }
+      Object.assign(slot, slot.motion.position(now));
+      if (slot.held) {
+        if (this.model.draggers.has(slot.held))
+          this.model.move(slot.held, slot.x, slot.y, { trackShake: false });
+        else slot.held = null;
+      }
+      this.renderCursor(slot, i, now);
+    });
     if (
       this.busy ||
-      now - this.lastFrame < 55 ||
+      now - this.lastFrame < CONFIG.handDetectInterval ||
       this.video.readyState < 2 ||
       this.lastVideo === this.video.currentTime
     )
@@ -144,50 +175,92 @@ export class HandController {
         this.worker.postMessage({ type: 'frame', bitmap, timestamp: now }, [bitmap]);
       })
       .catch(() => {
-        this.busy = false;
+        if (generation === this.generation) this.busy = false;
       });
   }
-  process(landmarks, now) {
+  process(landmarks, now, timestamp = now, handedness = []) {
     if (!this.active) return;
     if (document.hidden || document.querySelector('dialog[open]')) {
       this.releaseAll();
       return;
     }
-    const detections = landmarks.map((lm) => ({
-      lm,
-      x: 1 - (lm[4].x + lm[8].x) / 2,
-      y: (lm[4].y + lm[8].y) / 2,
-    }));
+    if (!Number.isFinite(timestamp) || timestamp <= this.lastSample) return;
+    this.lastSample = timestamp;
+    if (now - timestamp > CONFIG.handLostAfter) {
+      this.releaseAll();
+      return;
+    }
+    for (const slot of this.slots)
+      if (slot.gesture !== 'lost' && now - slot.seen > CONFIG.handLostAfter) this.release(slot);
+    let detections = landmarks
+      .map((lm, i) => ({
+        lm,
+        side: handedness[i]?.[0]?.score > 0.7 ? handedness[i][0].categoryName : '',
+      }))
+      .filter(
+        ({ lm }) =>
+          lm?.length >= 21 && lm.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
+      )
+      .map(({ lm, side }) => ({
+        lm,
+        side,
+        x: 1 - (lm[4].x + lm[8].x) / 2,
+        y: (lm[4].y + lm[8].y) / 2,
+      }));
+    if (this.gate) {
+      detections = this.gate.update(detections, now);
+      // Never let a held star continue interpolating through an ambiguous frame.
+      if (!detections.length) this.releaseAll();
+    }
     const available = new Set(detections.map((_, i) => i));
     // Stable nearest-neighbour slots prevent MediaPipe's result ordering from
-    // swapping which hand holds which star between frames.
+    // swapping which hand holds which star between frames. Match against the
+    // last raw midpoint, not a lagging cursor or the fist's different anchor.
     const assignments = new Map();
     const pairs = this.slots
       .flatMap((slot, s) =>
-        detections.map((d, i) => ({ s, i, d: Math.hypot(slot.x - d.x, slot.y - d.y) })),
+        detections.map((d, i) => ({
+          s,
+          i,
+          fresh: slot.gesture === 'lost',
+          d: Math.hypot(slot.rawX - d.x, slot.rawY - d.y),
+        })),
       )
-      .sort((a, b) => a.d - b.d);
+      .sort((a, b) => Number(a.fresh) - Number(b.fresh) || a.d - b.d);
     for (const pair of pairs)
       if (!assignments.has(pair.s) && available.has(pair.i)) {
         assignments.set(pair.s, pair.i);
         available.delete(pair.i);
       }
     let visibleHands = 0;
+    // Read layout once, before moving cursors or updating any status text.
+    const width = this.stage.clientWidth, height = this.stage.clientHeight;
     this.slots.forEach((slot, i) => {
       const d = detections[assignments.get(i)];
       if (!d) {
+        slot.gestures.pending = null;
         if (now - slot.seen > CONFIG.handLostAfter) this.release(slot);
         return;
       }
       visibleHands++;
       const previous = slot.gesture;
-      const { gesture } = classifyHand(d.lm, previous);
-      const fresh = previous === 'lost';
+      const gesture = slot.gestures.update(d.lm, timestamp);
+      // While a possible release is being confirmed, keep the held position.
+      // Opening/folding the fingers changes the midpoint even without a drag.
+      const pendingRelease = slot.held && gesture === 'pinch' && slot.gestures.pending;
       // Use palm center for fist placement, pinch midpoint for manipulation.
       const dx = gesture === 'fist' ? 1 - d.lm[9].x : d.x;
       const dy = gesture === 'fist' ? d.lm[9].y : d.y;
-      slot.x = fresh ? dx : slot.x + (dx - slot.x) * 0.42;
-      slot.y = fresh ? dy : slot.y + (dy - slot.y) * 0.42;
+      // Do not smooth between two different anatomical anchors.
+      if ((gesture === 'fist') !== (previous === 'fist')) slot.motion.reset();
+      if (!pendingRelease)
+        slot.motion.update(dx, dy, timestamp, width, height, now);
+      Object.assign(slot, slot.motion.position(now));
+      slot.rawX = d.x;
+      slot.rawY = d.y;
+      // Presence is measured since the last delivered observation. Counting
+      // inference latency again would release a continuously visible hand on
+      // slower CPUs. The filter and gestures still use capture timestamps.
       slot.seen = now;
       slot.gesture = gesture;
       if (gesture === 'pinch') {
@@ -195,19 +268,17 @@ export class HandController {
           const star = this.model.nearest(
             slot.x,
             slot.y,
-            this.stage.clientWidth,
-            this.stage.clientHeight,
-            52,
+            width,
+            height,
+            CONFIG.handGrabRadius,
           );
           if (star && this.model.beginDrag(star.id)) slot.held = star.id;
         }
-        if (slot.held) {
-          this.model.move(slot.held, slot.x, slot.y);
-          // Shake detection runs on the raw (pre-smoothing) fingertip
-          // position, not the eased cursor — the 0.42 lerp above exists to
-          // keep normal dragging smooth, but it also damps out the fast
-          // back-and-forth a deliberate shake needs to be recognized.
-          this.model.trackShake(slot.held, dx);
+        if (slot.held && !pendingRelease) {
+          // Feed exactly one raw sample per camera result. Mixing raw and
+          // rendered coordinates creates artificial direction reversals.
+          this.model.trackShake(slot.held, dx, timestamp);
+          if (!this.model.draggers.has(slot.held)) slot.held = null;
         }
       } else if (slot.held) {
         this.model.endDrag(slot.held);
@@ -215,13 +286,13 @@ export class HandController {
       }
       if (gesture === 'fist') {
         if (previous !== 'fist') {
-          slot.fistStart = now;
+          slot.fistStart = timestamp;
           slot.spawned = false;
         }
-        if (!slot.spawned && now - slot.fistStart > CONFIG.fistHold) {
+        if (!slot.spawned && timestamp - slot.fistStart > CONFIG.fistHold) {
           slot.spawned = true;
           if (
-            !this.model.nearest(slot.x, slot.y, this.stage.clientWidth, this.stage.clientHeight, 45)
+            !this.model.nearest(slot.x, slot.y, width, height, 45)
           ) {
             const star = this.model.add(slot.x, slot.y);
             if (star) {
@@ -235,9 +306,10 @@ export class HandController {
         this.callbacks.burst(slot, 1.7);
         slot.openAt = now;
       }
-      this.renderCursor(slot, i, now);
     });
     this.callbacks.hands(visibleHands);
+    if (this.gate)
+      this.callbacks.control?.({ ...this.gate.state, session: this.gate.session || 0 });
   }
   renderCursor(slot, i, now) {
     let el = this.cursorLayer.children[i];
@@ -245,23 +317,34 @@ export class HandController {
       el = document.createElement('div');
       this.cursorLayer.append(el);
     }
-    el.className = `hand-cursor ${slot.gesture}`;
-    el.hidden = false;
-    el.style.left = `${slot.x * 100}%`;
-    el.style.top = `${slot.y * 100}%`;
-    el.style.setProperty(
-      '--hold',
-      `${slot.fistStart ? Math.min(1, (now - slot.fistStart) / CONFIG.fistHold) * 360 : 0}deg`,
-    );
+    const className = `hand-cursor ${slot.gesture}`;
+    if (el.className !== className) el.className = className;
+    if (el.hidden) el.hidden = false;
+    // Fixed-position cursors use viewport coordinates as before, but transform
+    // movement can be composited without laying out the page on every frame.
+    const transform = `translate3d(${slot.x * 100}vw, ${slot.y * 100}vh, 0) translate(-50%, -50%)`;
+    if (el.cursorTransform !== transform) {
+      el.style.transform = transform;
+      el.cursorTransform = transform;
+    }
+    const hold = slot.fistStart ? Math.min(1, (now - slot.fistStart) / CONFIG.fistHold) * 360 : 0;
+    if (el.holdProgress !== hold) {
+      el.style.setProperty('--hold', `${hold}deg`);
+      el.holdProgress = hold;
+    }
   }
   release(slot) {
     if (slot.held) this.model.endDrag(slot.held);
     slot.held = null;
     slot.gesture = 'lost';
     slot.fistStart = 0;
+    slot.spawned = false;
     slot.seen = 0;
+    slot.motion.reset();
+    slot.gestures.reset();
     const index = this.slots.indexOf(slot);
-    if (this.cursorLayer.children[index]) this.cursorLayer.children[index].hidden = true;
+    const cursor = this.cursorLayer.children[index];
+    if (cursor && !cursor.hidden) cursor.hidden = true;
   }
   releaseAll() {
     this.slots.forEach((s) => this.release(s));
@@ -278,6 +361,7 @@ export class HandController {
     this.video.pause();
     this.video.srcObject = null;
     this.releaseAll();
+    this.gate?.reset();
     this.callbacks.status('off');
   }
 }

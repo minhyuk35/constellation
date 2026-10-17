@@ -63,6 +63,10 @@ const icons = {
   ArrowLeftRight,
 };
 export const $ = (id) => document.getElementById(id);
+export function setText(id, text) {
+  const element = $(id);
+  if (element.textContent !== text) element.textContent = text;
+}
 export const refreshIcons = () => createIcons({ icons, attrs: { 'stroke-width': 1.5 } });
 export class Interface {
   constructor(actions) {
@@ -193,9 +197,11 @@ export class Interface {
     $('workspace-status').hidden = false;
   }
   updateCount(model) {
-    $('star-count').textContent = `${String(model.stars.length).padStart(2, '0')} STARS`;
-    $('undo-button').disabled = !model.history.length || model.dragging;
-    $('interpret-button').disabled = model.stars.length < 4 || model.dragging;
+    setText('star-count', `${String(model.stars.length).padStart(2, '0')} STARS`);
+    const undoDisabled = !model.history.length || model.dragging;
+    const interpretDisabled = model.stars.length < 4 || model.dragging;
+    if ($('undo-button').disabled !== undoDisabled) $('undo-button').disabled = undoDisabled;
+    if ($('interpret-button').disabled !== interpretDisabled) $('interpret-button').disabled = interpretDisabled;
   }
   showResult(match, example = false) {
     const s = match.shape;
@@ -212,6 +218,8 @@ export class Interface {
     $('result-birthday').hidden = !s.zodiac;
     $('result-art-credit').textContent = artCredit(s);
     if (artwork(s).credit === 'meuris') $('result-art-credit').href = ART_LICENSE_URL;
+    else if (artwork(s).credit === 'lucide')
+      $('result-art-credit').href = `${import.meta.env.BASE_URL}art/imagined/LICENSE.txt`;
     else $('result-art-credit').removeAttribute('href');
     $('result-detail').textContent = example
       ? `${s.points.length}개의 별 · ${s.kind}`
@@ -231,8 +239,8 @@ export class Interface {
     this.open('qr-dialog');
   }
   clearResult() {
-    $('discovery').hidden = true;
-    $('star-labels').replaceChildren();
+    if (!$('discovery').hidden) $('discovery').hidden = true;
+    if ($('star-labels').childElementCount) $('star-labels').replaceChildren();
   }
   labels(shape, stars) {
     const layer = $('star-labels');
@@ -330,7 +338,7 @@ export class Interface {
       card.append(note);
       const detail = document.createElement('span');
       detail.className = 'library-detail';
-      detail.textContent = shape.zodiac?.dates || SEASONS[shape.season] || '상상의 모양';
+      detail.textContent = shape.zodiac?.dates || SEASONS[shape.season] || shape.kind;
       card.append(detail);
       card.addEventListener('click', () => {
         $('library-dialog').close();

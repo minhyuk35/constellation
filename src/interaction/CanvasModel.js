@@ -60,7 +60,7 @@ export class CanvasModel extends EventTarget {
     this.lastEdit = performance.now();
     this.changed(false);
   }
-  move(id, x, y) {
+  move(id, x, y, { trackShake = true } = {}) {
     const star = this.stars.find((s) => s.id === id);
     if (!star) return;
     const nx = Math.max(0.02, Math.min(0.98, x)),
@@ -69,17 +69,16 @@ export class CanvasModel extends EventTarget {
     star.x = nx;
     star.y = ny;
     this.changed();
-    this.trackShake(id, nx);
+    if (trackShake) this.trackShake(id, nx);
   }
   // Two hands can each hold their own star and shake it independently, so
   // tracking is per-star rather than a single shared buffer. A shake is
   // several quick left-right reversals covering real horizontal distance in
   // well under half a second — deliberately more than ordinary hand jitter
   // while moving a star, so it doesn't trigger by accident.
-  trackShake(id, x) {
+  trackShake(id, x, now = performance.now()) {
     const samples = this.shakeTracking?.get(id);
     if (!samples) return;
-    const now = performance.now();
     samples.push({ x, t: now });
     while (samples.length && now - samples[0].t > 450) samples.shift();
     if (samples.length < 4) return;

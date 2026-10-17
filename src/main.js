@@ -4,20 +4,20 @@ import { PointerController } from './interaction/PointerController.js';
 import { HandController } from './interaction/HandController.js';
 import { PoseController } from './interaction/PoseController.js';
 import { Soundscape } from './audio/Soundscape.js';
-import { Interface, $ } from './ui/Interface.js';
+import { Interface, $, setText } from './ui/Interface.js';
 import { SHAPES, SHAPE_MAP, ZODIAC_SHAPES } from './data/shapes.js';
 import { matchShapes, normalize } from './recognition/matcher.js';
 import { saveArchive, readArchive } from './data/archive.js';
-import { encodeShare } from './data/share.js';
+import { ExhibitionKiosk } from './exhibition/kiosk.js';
 import { CONFIG } from './config.js';
-import QRCode from 'qrcode';
 
 const model = new CanvasModel();
 const sound = new Soundscape();
-let universe, pointer, hand, pose, ui, recognition;
+let universe, pointer, hand, pose, ui, recognition, kiosk;
 let active = false,
   autoRecognize = true,
   currentMatch = null,
+  currentMatchIsExample = true,
   previewIndex = 0;
 let requestedRevision = -1,
   recognizedRevision = -1,
@@ -55,6 +55,7 @@ function updateDrawing(reveal = false) {
 }
 function applyResult(match, { example = false, save = true } = {}) {
   currentMatch = match;
+  currentMatchIsExample = example;
   recognizedRevision = model.revision;
   universe.showArt(match);
   ui.showResult(match, example);
@@ -70,9 +71,15 @@ function applyResult(match, { example = false, save = true } = {}) {
     )
   )
     ui.toast('기록 저장 공간이 부족해요. ‘순간 저장’으로 이미지를 보관해 주세요.');
+  if (!example)
+    kiosk.complete(model, visibleEdges(), match.shape.name, universe.width / universe.height);
 }
 function loadPreset(shape, intro = false) {
-  if (!intro) start();
+  if (!intro) {
+    start();
+    kiosk.newWork();
+    kiosk.edited();
+  }
   hand?.releaseAll();
   pointer?.release();
   inferredEdges = [];
@@ -130,7 +137,7 @@ async function toggleCamera() {
   try {
     await hand.start();
     start();
-    ui.toast('손을 보여주세요. 엄지와 검지를 맞대면 별을 잡을 수 있어요.');
+    ui.toast('화면 중앙에서 손바닥을 1초 펼치면 그 손으로 조작을 시작합니다.');
     // Multi-visitor pose tracking is a bonus layer on the same camera feed;
     // its failure (e.g. no WebGL) must never block hand tracking from working.
     pose.start().catch((error) => console.warn('Pose tracking unavailable:', error));
@@ -177,26 +184,13 @@ async function showQrCode() {
     ui.toast('별을 4개 이상 놓으면 QR로 공유할 수 있어요.');
     return;
   }
-  const payload = encodeShare({
-    stars: model.stars,
-    edges: visibleEdges(),
-    shapeId: currentMatch?.shape.id || null,
-  });
-  if (!payload) {
-    ui.toast('QR 코드를 만들지 못했어요.');
-    return;
-  }
-  const shareUrl = new URL(`share.html#d=${payload}`, location.href).toString();
-  try {
-    const dataUrl = await QRCode.toDataURL(shareUrl, {
-      margin: 1,
-      width: 480,
-      color: { dark: '#0d0b1aff', light: '#f5f3ffff' },
-    });
-    ui.showQR(dataUrl, shareUrl);
-  } catch {
-    ui.toast('QR 코드를 만들지 못했어요.');
-  }
+  await kiosk.complete(
+    model,
+    visibleEdges(),
+    currentMatch?.shape.name,
+    universe.width / universe.height,
+    true,
+  );
 }
 function restore(entry) {
   start();
@@ -273,6 +267,7 @@ try {
       start();
       pointer.release();
       hand.releaseAll();
+      kiosk.newWork();
       model.clear();
       ui.toast('새로운 밤하늘을 열었습니다. 되돌리기로 이전 배치를 복원할 수 있어요.');
     },
@@ -323,6 +318,12 @@ try {
     else $('render-error').hidden = false;
   });
   $('reduced-motion').checked = universe.reducedMotion;
+  kiosk = new ExhibitionKiosk((message) => ui.toast(message), () => {
+    // Connecting after the discovery must publish the result already on screen.
+    if (!active || !currentMatch || currentMatchIsExample) return;
+    kiosk.edited();
+    return kiosk.complete(model, visibleEdges(), currentMatch.shape.name, universe.width / universe.height);
+  });
   const callbacks = {
     activate: start,
     toast: (message) => ui.toast(message),
@@ -336,8 +337,9 @@ try {
       if (status === 'active' || status === 'off') {
         ui.cameraStatus(status);
         lastHandCount = -1;
-        if (status === 'off')
+        if (status === 'off') {
           $('gesture-hint').textContent = '별을 끌어 움직이거나 빈 곳을 눌러보세요';
+        }
       } else ui.toast(status);
     },
     hands: (count) => {
@@ -351,6 +353,27 @@ try {
         : '손 전체가 카메라에 보이도록 해주세요';
     },
   });
+  hand.callbacks.control = ({ phase, progress, session }) => {
+    if (phase === 'active' && session !== hand.lastControlSession) {
+      if (hand.lastControlSession != null) kiosk.newWork();
+      hand.lastControlSession = session;
+    }
+    const messages = {
+      waiting: '화면 중앙에서 손바닥을 1초 펼쳐 시작하세요',
+      arming: `이 손으로 시작하는 중 · ${Math.round(progress * 100)}%`,
+      active: '선택한 손만 조작 중 · 집기 / 주먹 1초 / 흔들어 삭제',
+      lost: '조작 일시정지 · 같은 손바닥을 다시 1초 펼쳐주세요',
+    };
+    setText('gesture-hint', messages[phase]);
+    setText('input-status',
+      phase === 'active'
+        ? 'YOUR HAND · LOCKED'
+        : phase === 'arming'
+          ? 'HOLD YOUR PALM'
+          : phase === 'lost'
+            ? 'HAND PAUSED'
+            : 'SHOW YOUR HANDS');
+  };
   pose = new PoseController($('camera-video'), {
     presence: (people) => universe.setPresence(people),
     trail: (point) => universe.spawnTrail(point),
@@ -405,18 +428,19 @@ try {
   };
   model.addEventListener('change', ({ detail }) => {
     if (detail.edited && !presetChange) {
+      kiosk?.edited();
       inferredEdges = [];
       currentMatch = null;
       universe.hideArt();
       universe.dissolveLines();
       ui.clearResult();
-      $('scene-status').textContent = model.stars.length
+      setText('scene-status', model.stars.length
         ? '당신의 이야기를 그리는 중'
-        : '별을 기다리는 중';
-      $('drawing-hint').textContent =
+        : '별을 기다리는 중');
+      setText('drawing-hint',
         model.stars.length < 4
           ? `별 ${Math.max(0, 4 - model.stars.length)}개를 더 놓아보세요. 빈 공간을 누르면 별이 생겨요.`
-          : '잠시 손을 멈추면 닮은 모양이 드러납니다.';
+          : '잠시 손을 멈추면 닮은 모양이 드러납니다.');
     }
     updateDrawing();
   });

@@ -14,6 +14,7 @@
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E✧%3C/text%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="/styles/main.css" />
+    <link rel="stylesheet" href="/styles/kiosk.css" />
   </head>
   <body>
     <main id="app">
@@ -25,7 +26,7 @@
         >
         <nav class="main-nav" aria-label="메인 메뉴">
           <button class="nav-link active" id="nav-create">우주 그리기</button>
-          <button class="nav-link" id="nav-library">별자리 도감 <span>88</span></button>
+          <button class="nav-link" id="nav-library">별자리 도감 <span>200</span></button>
           <button class="nav-link" id="nav-archive">나의 기록</button>
         </nav>
         <div class="header-tools">
@@ -212,13 +213,13 @@
         <button class="icon-button close-dialog" aria-label="닫기"><i data-lucide="x"></i></button>
       </div>
       <p class="dialog-intro">
-        나의 생일을 닮은 12궁부터, 온 하늘의 88개 별자리까지. 하나의 이야기를 골라 펼쳐보세요.
+        황도 12궁을 포함한 공식 별자리 88개와 상상으로 만든 모양 112개. 200개의 이야기 중 하나를 골라 펼쳐보세요.
       </p>
       <div class="filter-tabs" role="group" aria-label="도감 분류">
         <button class="active" data-filter="zodiac">황도 12궁 <span>12</span></button>
-        <button data-filter="constellation">모든 별자리 <span>88</span></button>
-        <button data-filter="object">상상의 모양 <span>12</span></button>
-        <button data-filter="all">전체 <span>100</span></button>
+        <button data-filter="constellation">공식 별자리 <span>88</span></button>
+        <button data-filter="object">상상의 모양 <span>112</span></button>
+        <button data-filter="all">전체 <span>200</span></button>
       </div>
       <div class="library-tools">
         <label class="library-search"
@@ -245,7 +246,7 @@
         일치하는 이야기가 없어요. 검색어나 하늘 분류를 바꿔보세요.
       </p>
       <p class="small-note">
-        88개 별자리와 12개 상상의 모양을 담았습니다. 자유 배치는 별 4개 이상인 형태와 비교합니다.
+        공식 별자리 88개와 상상의 모양 112개를 담았습니다. 자유 배치는 별 4개 이상인 형태와 비교합니다.
         가까운 별의 간격을 넓힌 감상용 투영이며, 생일 구간은 일반적인 12궁 분류로 실제 태양의 위치와
         다릅니다. 계절은 한국 중위도 저녁 하늘의 대략적인 분류이며, 남쪽 하늘에는 한국에서 보기
         어려운 별자리도 포함됩니다.
@@ -309,8 +310,8 @@
         </p>
       </div>
       <p class="small-note">
-        손 전체가 보이도록 카메라에서 적당히 떨어져 주세요. 영상은 저장하거나 전송하지 않습니다. 두
-        손을 동시에 사용할 수 있습니다.
+        화면 중앙에서 손바닥을 1초 펼치면 그 손만 조작할 수 있어요. 손이 겹치거나 가려지면
+        잠시 멈춥니다. 다시 손바닥을 펼쳐 재개해 주세요. 영상은 저장하거나 전송하지 않습니다.
       </p>
     </dialog>
     <dialog id="ai-info-dialog" class="panel-dialog">
@@ -386,6 +387,21 @@
       <p class="small-note" id="camera-detail">
         카메라를 켜면 브라우저에서 사용 권한을 요청합니다.
       </p>
+    </dialog>
+    <aside id="creation-ticket" hidden aria-label="완성한 별자리 작성자 QR">
+      <button id="ticket-close" aria-label="작성자 QR 닫기">×</button>
+      <p class="eyebrow">YOUR CONSTELLATION</p><h2 id="ticket-title">당신의 별자리</h2>
+      <a id="ticket-link" target="_blank" rel="noopener noreferrer"><img id="ticket-image" alt="닉네임과 이야기를 남기는 작성자 QR" /></a>
+      <div id="ticket-occupied" hidden aria-hidden="true">✧</div>
+      <p id="ticket-message">만든 분이 스캔해 주세요.<br />닉네임과 이야기를 남기면 모두의 하늘에 떠올라요.</p>
+      <small id="ticket-footnote">새 별자리가 완성되면 QR도 바뀌어요</small>
+    </aside>
+    <div class="exhibition-links"><a href="vr.html">VR 우주 ↗</a><a id="entrance-link" href="entrance.html" target="_blank" rel="noopener">관람객 입장 QR ↗</a><button id="exhibition-settings">전시 연결</button></div>
+    <dialog id="exhibition-dialog" class="panel-dialog">
+      <div class="dialog-heading"><div><div class="eyebrow">EXHIBITION CONNECTION</div><h2>전시 연결</h2></div><button class="close-dialog icon-button" aria-label="닫기">×</button></div>
+      <p class="dialog-intro">큰 모니터에서 작품을 등록할 때 사용하는 운영자 키입니다. 관람객에게 공유하지 마세요.</p>
+      <label for="operator-key">운영자 키</label><input id="operator-key" type="password" autocomplete="off" />
+      <button id="connect-exhibition" class="primary-button">연결 확인</button><p id="connection-status" role="status"></p>
     </dialog>
     <dialog id="qr-dialog" class="panel-dialog qr-dialog">
       <div class="dialog-heading">

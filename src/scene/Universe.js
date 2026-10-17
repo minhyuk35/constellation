@@ -172,8 +172,16 @@ export class Universe {
     this.drawingStars.renderOrder = 3;
     this.scene.add(this.drawingStars);
     this.lineBaseOpacity = 0.52;
+    // One reusable buffer fits every possible connection between 48 stars.
+    // Dragging must not delete/recreate a GPU buffer on every model change.
+    const lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setAttribute('position', new THREE.BufferAttribute(
+      new Float32Array(CONFIG.maxStars * (CONFIG.maxStars - 1) * 3), 3,
+    ).setUsage(THREE.DynamicDrawUsage));
+    lineGeometry.setDrawRange(0, 0);
+    for (const attr of Object.values(geometry.attributes)) attr.setUsage(THREE.DynamicDrawUsage);
     this.lines = new THREE.LineSegments(
-      new THREE.BufferGeometry(),
+      lineGeometry,
       new THREE.LineBasicMaterial({
         color: 0xc0d6ea,
         transparent: true,
@@ -215,6 +223,7 @@ export class Universe {
         uGrid: { value: 4 },
         uRect: { value: new THREE.Vector4(0, 0.75, 0.25, 0.25) },
         uExposure: { value: 1 },
+        uBlackKey: { value: 0 },
         uOpacity: { value: 0 },
         uTime: { value: 0 },
       },
@@ -361,12 +370,6 @@ export class Universe {
       if (!byId.has(a) || !byId.has(b)) continue;
       this.lineSegments.push({ p: this.toWorld(byId.get(a)), q: this.toWorld(byId.get(b)) });
     }
-    this.lines.geometry.dispose();
-    this.lines.geometry = new THREE.BufferGeometry();
-    this.lines.geometry.setAttribute(
-      'position',
-      new THREE.BufferAttribute(new Float32Array(this.lineSegments.length * 6), 3),
-    );
     this.lines.geometry.setDrawRange(0, this.lineSegments.length * 2);
     this.applyLineReveal();
     const selected = byId.get(this.selected);
@@ -383,13 +386,15 @@ export class Universe {
   // full length and untouched ones stay collapsed to a point (invisible).
   applyLineReveal() {
     const attr = this.lines.geometry.attributes.position;
-    if (!attr || !this.lineSegments) return;
+    if (!attr || !this.lineSegments?.length) return;
     const progress = this.reveal * this.lineSegments.length;
     this.lineSegments.forEach(({ p, q }, i) => {
       const t = Math.max(0, Math.min(1, progress - i));
       attr.setXYZ(i * 2, p.x, p.y, 1);
       attr.setXYZ(i * 2 + 1, p.x + (q.x - p.x) * t, p.y + (q.y - p.y) * t, 1);
     });
+    attr.clearUpdateRanges();
+    attr.addUpdateRange(0, this.lineSegments.length * 6);
     attr.needsUpdate = true;
   }
 
@@ -667,6 +672,9 @@ export class Universe {
         this.silhouette = null;
       }
     }
+    // Each person has the same world position for all particles this frame.
+    // Avoid recreating it up to 360 times per person on the render thread.
+    const people = this.presencePeople.map(person => ({ ...this.toWorld(person), quiet: person.quiet }));
     for (let i = 0; i < n; i++) {
       if (this.presenceState[i]) continue;
       let x = attr.position.getX(i),
@@ -675,10 +683,9 @@ export class Universe {
         vy = this.presenceVelocity[i * 2 + 1];
       let fx = (Math.random() - 0.5) * 4,
         fy = (Math.random() - 0.5) * 4;
-      for (const person of this.presencePeople) {
-        const w = this.toWorld(person);
-        const dx = w.x - x,
-          dy = w.y - y;
+      for (const person of people) {
+        const dx = person.x - x,
+          dy = person.y - y;
         const d = Math.hypot(dx, dy) + 60;
         const pull = (person.quiet ? 900 : 220) / d;
         fx += (dx / d) * pull;

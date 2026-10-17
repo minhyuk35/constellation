@@ -10,7 +10,7 @@ export function artwork(shape) {
   // Unequal rows in the generated sheet need explicit sampling rectangles.
   const rows =
     art.src === 'art/zodiac-atlas.png' ? [0, 282 / 1254, 586 / 1254, 888 / 1254, 1] : null;
-  const rect = {
+  const rect = art.rect || {
     x: column / art.grid,
     y: rows ? rows[row] : row / art.grid,
     w: 1 / art.grid,
@@ -19,6 +19,7 @@ export function artwork(shape) {
   return { ...art, rect };
 }
 export function artCredit(shape) {
+  if (artwork(shape).credit === 'lucide') return 'Lucide 도안을 바탕으로 만든 창작 별자리 · ISC';
   return artwork(shape).credit === 'meuris'
     ? 'Johan Meuris / Stellarium · Free Art License 1.3'
     : 'AI로 제작한 별자리 삽화';

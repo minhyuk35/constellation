@@ -4,7 +4,15 @@ dist/
 .env.*
 !.env.example
 tmp/
+.wrangler/
+.vercel/
+.dev.vars*
+worker/wrangler.production.json
+exhibition-secrets.local.json
 *.log
 public/wasm/
 public/models/*.task
 public/models/movenet-multipose/
+.vercel
+.env*
+!.env.example
