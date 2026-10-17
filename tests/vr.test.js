@@ -2,11 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Vector3, Quaternion } from 'three';
 import { VRModel } from '../src/vr/VRModel.js';
-import { PinchLatch } from '../src/vr/VRInput.js';
-import { SHAPE_MAP } from '../src/data/shapes.js';
+import { VRGestures, VRShake } from '../src/vr/VRGestures.js';
+import { SHAPES, SHAPE_MAP } from '../src/data/shapes.js';
+import { handPoints } from './fixtures/vr-hands.js';
 const heart = SHAPE_MAP.get('heart');
-const addHeart = (model) =>
+const addHeart = (model) => {
   heart.points.forEach((p) => model.add(new Vector3(p.x * 0.4, 1.6 + p.y * 0.4, -0.65)));
+  model.identify(model.draft);
+};
 test('VR keeps depth, recognizes multiple independent works around the viewer, and undoes a completion', () => {
   const model = new VRModel();
   addHeart(model);
@@ -78,18 +81,53 @@ test('VR sky remains anchored while the user turns, and deleting a work reuses o
   );
 });
 
-test('VR pinch has hysteresis, confirms intent, and requires opening again after tracking loss', () => {
-  const latch = new PinchLatch();
-  assert.equal(latch.update(0.01, 0), false, 'closed hands on acquisition cannot create a star');
-  latch.update(0.05, 10);
-  assert.equal(latch.update(0.01, 20), false);
-  assert.equal(latch.update(0.01, 40), false);
-  assert.equal(latch.update(0.01, 60), true);
-  assert.equal(latch.update(0.028, 80), true);
-  assert.equal(latch.update(0.034, 100), false);
-  latch.update(0.01, 120);
-  assert.equal(latch.update(0.01, 160), true);
-  latch.update(NaN, 180);
-  assert.equal(latch.update(0.01, 240), false);
-  assert.equal(latch.update(0.01, 300), false);
+test('VR shares webcam gestures: fist hold creates once, pinch grabs with confirmation, tracking loss rearms', () => {
+  const gestures = new VRGestures(), fist = handPoints('fist'), pinch = handPoints('pinch'), open = handPoints('open');
+  gestures.update(fist, 0);
+  assert.equal(gestures.update(fist, 40).gesture, 'fist');
+  assert.equal(gestures.update(fist, 1000).spawn, false);
+  assert.equal(gestures.update(fist, 1100).spawn, true);
+  assert.equal(gestures.update(fist, 3000).spawn, false);
+  gestures.update(pinch, 3050);
+  assert.equal(gestures.update(pinch, 3090).grab, true);
+  assert.equal(gestures.update(pinch, 3130).grab, false);
+  assert.equal(gestures.update(null, 3150).release, true);
+  gestures.update(pinch, 3200);
+  assert.equal(gestures.update(pinch, 3240).grab, false);
+  gestures.update(open, 3300); gestures.update(open, 3340);
+  gestures.update(pinch, 3400);
+  assert.equal(gestures.update(pinch, 3440).grab, true);
+});
+
+test('all 200 VR presets preserve website points, edges, names and illustrations after completion', () => {
+  for (const shape of SHAPES) {
+    const model = new VRModel();
+    model.loadPreset(shape, new Vector3(1, 1.6, 2), new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 1.4));
+    assert.equal(model.draft.shapeId, shape.id);
+    assert.deepEqual(model.draft.edges, shape.edges);
+    assert.deepEqual(model.draft.stars.map(({ x, y }) => ({ x, y })), shape.points);
+    const completed = model.finish();
+    assert.equal(completed.shapeId, shape.id);
+    assert.equal(completed.title, shape.name);
+    assert.deepEqual(completed.edges, shape.edges);
+  }
+});
+
+test('VR shake rejects tiny jitter and slow movement; quick horizontal reversals delete in one undo step', () => {
+  const jitter = new VRShake(), slow = new VRShake();
+  for (let t = 0; t < 1600; t += 11) {
+    assert.equal(jitter.update(Math.sin(t) * .002, t), false);
+    assert.equal(slow.update(t * .0001, t), false);
+  }
+  const shake = new VRShake();
+  assert.equal(shake.update(0, 0), false);
+  assert.equal(shake.update(.1, 60), false);
+  assert.equal(shake.update(-.1, 120), false);
+  assert.equal(shake.update(.1, 180), false);
+  assert.equal(shake.update(-.1, 240), true);
+  const model = new VRModel(), target = model.add(new Vector3(0, 1.4, -.5));
+  model.remember(); model.move(target, new Vector3(.3, 1.4, -.5));
+  model.remove(target, { remember: false });
+  model.undo();
+  assert.ok(model.world(model.draft, model.draft.stars[0]).distanceTo(new Vector3(0, 1.4, -.5)) < 1e-7);
 });

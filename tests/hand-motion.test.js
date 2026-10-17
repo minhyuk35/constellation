@@ -65,7 +65,18 @@ test('render interpolation advances between samples, stops at target and never e
   const end = motion.position(70 + motion.duration).x;
   assert.ok(start < middle && middle < end && end < 0.51);
   assert.deepEqual(motion.position(500), motion.position(1000));
-  assert.ok(motion.duration <= CONFIG.handMotion.interpolationMs);
+  assert.ok(motion.duration <= CONFIG.handMotion.maxInterpolationMs);
+});
+
+test('normal movement bridges more of a slow inference cadence without lengthening fast-motion response', () => {
+  const steady = new HandMotion(), fast = new HandMotion();
+  steady.update(.5,.5,0,1000,1000);
+  fast.update(.5,.5,0,1000,1000);
+  steady.update(.508,.5,80,1000,1000,150);
+  fast.update(.58,.5,80,1000,1000,150);
+  assert.ok(steady.duration>30 && steady.duration<=55);
+  assert.ok(fast.duration<25);
+  assert.ok(steady.position(180).x<steady.position(195).x);
 });
 
 test('capture timing, not delivery jitter or render frequency, controls filtering', () => {

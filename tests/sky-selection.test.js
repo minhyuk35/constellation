@@ -25,9 +25,11 @@ test('a sparse sky still accepts new works without reordering existing works', (
   ]);
 });
 
-test('a creator sees their own work among 29 random others without any camera targeting',()=>{
-  const works=Array.from({length:200},(_,i)=>({id:String(i)}));
-  const selection=new SkySelection(()=>.23,'199'), selected=selection.update(works);
-  assert.equal(selected.length,30);assert.ok(selected.some(work=>work.id==='199'));
-  assert.deepEqual(selection.update(works),selected);
+test('a creator sees their own work among 29 random others without any camera targeting', () => {
+  const works = Array.from({ length: 200 }, (_, i) => ({ id: String(i) }));
+  const selection = new SkySelection(() => 0.23, '199'),
+    selected = selection.update(works);
+  assert.equal(selected.length, 30);
+  assert.ok(selected.some((work) => work.id === '199'));
+  assert.deepEqual(selection.update(works), selected);
 });

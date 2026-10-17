@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import { SkyArtwork } from '../exhibition/SkyArtwork.js';
 import { skyIllustration } from '../exhibition/sky-art.js';
 import { VR_MAX_STARS, VR_MAX_WORKS } from './VRModel.js';
+import { StarParticles } from '../scene/StarParticles.js';
+import { VRLibrary } from './VRLibrary.js';
 
 const palette = ['#c6e8ff', '#e6cba0', '#d2c3f2', '#9ddbcf'];
-function textTexture(text, width = 768, height = 160) {
+function textTexture(text, width = 1024, height = 96) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -15,7 +17,7 @@ function textTexture(text, width = 768, height = 160) {
   ctx.fillStyle = '#c5deeb';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `${Math.floor(height * 0.29)}px sans-serif`;
+  ctx.font = `${Math.floor(height * 0.42)}px sans-serif`;
   ctx.fillText(text, width / 2, height / 2, width * 0.94);
   texture.needsUpdate = true;
   return texture;
@@ -24,7 +26,7 @@ function label(text, width, height) {
   return new THREE.Mesh(
     new THREE.PlaneGeometry(width, height),
     new THREE.MeshBasicMaterial({
-      map: textTexture(text),
+      map: textTexture(text, Math.min(2048, Math.round(128 * width / height)), 128),
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -58,6 +60,10 @@ export class VRWorld {
     this.starTexture = this.makeStarTexture();
     this.makeEnvironment();
     this.makePanel();
+    this.library = new VRLibrary(this.camera, this.starTexture, label);
+    this.particles = new StarParticles(this.scene, { reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches });
+    this.effect = e => this.particles.emit(e.detail.point, { kind: e.detail.kind });
+    model.addEventListener('star-effect', this.effect);
     this.resize = () => {
       this.camera.aspect = innerWidth / innerHeight;
       this.camera.updateProjectionMatrix();
@@ -172,7 +178,7 @@ export class VRWorld {
     for (const [i, [id, text]] of [
       ['finish', '완성해서 띄우기'],
       ['undo', '되돌리기'],
-      ['erase', '별 지우기'],
+      ['library', '별자리 도감'],
       ['exit', 'VR 나가기'],
     ].entries()) {
       const mesh = label(text, 0.235, 0.08);
@@ -181,25 +187,25 @@ export class VRWorld {
       this.panel.add(mesh);
       this.buttons.push(mesh);
     }
-    this.panelNote = label('빈 공간 집기 · 별 생성  /  별 집고 움직이기 · 이동', 0.94, 0.065);
+    this.panelNote = label('주먹 1초 · 생성  /  집어서 이동  /  좌우로 흔들어 삭제', 0.94, 0.065);
     this.panelNote.position.y = -0.105;
     this.panel.add(this.panelNote);
     this.raycaster = new THREE.Raycaster();
   }
   actionAt(origin, direction) {
-    if (!this.panel.visible) return null;
-    this.panel.updateWorldMatrix(true, true);
+    const group = this.library.visible ? this.library.group : this.panel;
+    if (!group.visible) return null;
+    group.updateWorldMatrix(true, true);
     this.raycaster.set(origin, direction);
-    return this.raycaster.intersectObjects(this.buttons, false)[0]?.object.userData.action || null;
+    return this.raycaster.intersectObjects(this.library.visible ? this.library.buttons : this.buttons, false)[0]?.object.userData.action || null;
   }
-  updatePanel(erase) {
-    const title = `VR 우주  ·  ${this.model.works.length}/${VR_MAX_WORKS} 별자리  ·  ${this.model.draft.stars.length}/${VR_MAX_STARS} 별`;
+  updatePanel() {
+    const title = `${this.model.draft.shapeId ? `${this.model.draft.title} 발견` : 'VR 우주'}  ·  ${this.model.works.length}/${VR_MAX_WORKS} 별자리  ·  ${this.model.draft.stars.length}/${VR_MAX_STARS} 별`;
     if (title !== this.panelText) {
       this.panelTitle.material.map.dispose();
       this.panelTitle.material.map = textTexture(title);
       this.panelText = title;
     }
-    this.buttons[2].material.color.set(erase ? '#edbba7' : '#ffffff');
   }
   sync(changedId = null) {
     const entities = this.model.entities,
@@ -278,21 +284,30 @@ export class VRWorld {
       });
       la.needsUpdate = true;
       entry.line.geometry.setDrawRange(0, entity.edges.length * 2);
-      const title = entity !== this.model.draft ? entity.title : '';
-      if (title !== entry.title) {
+      const title = entity !== this.model.draft || entity.shapeId ? entity.title : '';
+      if (title !== entry.title || entry.isDraft !== (entity === this.model.draft)) {
         if (entry.label) {
           entry.group.remove(entry.label);
           entry.label.geometry.dispose();
           entry.label.material.map.dispose();
           entry.label.material.dispose();
         }
-        entry.label = title ? label(title, 1.65, 0.23) : null;
+        entry.label = title ? label(title, entity === this.model.draft ? .8 : 1.65, entity === this.model.draft ? .11 : .23) : null;
         if (entry.label) {
           entry.label.position.y = -1.14;
           entry.group.add(entry.label);
         }
         entry.title = title;
+        entry.isDraft = entity === this.model.draft;
       }
+      if (entry.label && entity.stars.length) {
+        const xs = entity.stars.map(s => s.x), ys = entity.stars.map(s => s.y);
+        entry.label.position.set((Math.min(...xs) + Math.max(...xs)) / 2,
+          entity === this.model.draft ? Math.max(...ys) + .14 : Math.min(...ys) - .18, 0);
+      }
+      entry.center = entity.stars.reduce((sum, s) => sum.add(new THREE.Vector3(s.x, s.y, s.z)), new THREE.Vector3())
+        .divideScalar(entity.stars.length || 1);
+      if (entry.label) entry.label.position.z = entry.center.z;
       const artTitle = entity.shapeId && !entity.editing ? entity.title : null;
       if (artTitle !== entry.artTitle) {
         this.artwork.release(entry);
@@ -308,12 +323,17 @@ export class VRWorld {
   }
   frame(now) {
     const xr = this.renderer.xr.isPresenting;
-    this.panel.visible = xr;
+    this.panel.visible = xr && !this.library.visible;
     const camera = xr ? this.renderer.xr.getCamera() : this.camera,
       head = camera.getWorldPosition(new THREE.Vector3()),
       forward = camera.getWorldDirection(new THREE.Vector3());
-    for (const entry of this.entries.values())
-      entry.direction.copy(entry.group.position).sub(head).normalize();
+    this.particles.update(now / 1000);
+    this.library.update(now / 1000, forward);
+    for (const entry of this.entries.values()) {
+      entry.group.updateWorldMatrix(true, false);
+      entry.direction.copy(entry.center).applyMatrix4(entry.group.matrixWorld).sub(head).normalize();
+      if (entry.artMesh) entry.artMesh.position.z = entry.center.z - .02;
+    }
     this.artwork.update(
       this.entries,
       { fov: xr ? 100 : this.camera.fov, aspect: this.camera.aspect },
@@ -337,6 +357,9 @@ export class VRWorld {
   dispose() {
     this.renderer.setAnimationLoop(null);
     this.model.removeEventListener('change', this.change);
+    this.model.removeEventListener('star-effect', this.effect);
+    this.library.dispose();
+    this.particles.dispose();
     window.removeEventListener('resize', this.resize);
     for (const entry of this.entries.values()) this.disposeEntry(entry);
     this.entries.clear();

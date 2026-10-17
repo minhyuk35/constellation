@@ -16,29 +16,10 @@ const draft = () => ({
   position: { x: 0, y: 0, z: 0 },
   quaternion: { x: 0, y: 0, z: 0, w: 1 },
   scale: 1,
+  revision: 0,
+  recognizedRevision: -1,
+  lastEdit: 0,
 });
-function spanningTree(stars) {
-  const edges = [],
-    seen = new Set([0]);
-  while (seen.size < stars.length) {
-    let best = Infinity,
-      pair;
-    for (const a of seen)
-      for (let b = 0; b < stars.length; b++)
-        if (!seen.has(b)) {
-          const d = vec(stars[a]).distanceToSquared(vec(stars[b]));
-          if (d < best) {
-            best = d;
-            pair = [a, b];
-          }
-        }
-    if (!pair) break;
-    edges.push(pair);
-    seen.add(pair[1]);
-  }
-  return edges;
-}
-
 // A separate, meter-based VR model. The exhibition's 2D model, QR and DB are
 // deliberately not dependencies of this sandbox.
 export class VRModel extends EventTarget {
@@ -65,6 +46,10 @@ export class VRModel extends EventTarget {
     const state = this.history.pop();
     if (!state) return false;
     Object.assign(this, state);
+    for (const entity of this.entities) {
+      delete entity.editing;
+      entity.lastEdit = performance.now();
+    }
     this.changed();
     return true;
   }
@@ -80,13 +65,41 @@ export class VRModel extends EventTarget {
       .applyQuaternion(quat(entity.quaternion).invert())
       .divideScalar(entity.scale);
   }
+  prepareDraft(headPosition, headQuaternion) {
+    if (this.draft.stars.length || this.draft.framed) return;
+    this.draft.position = point(headPosition);
+    this.draft.quaternion = { x: headQuaternion.x, y: headQuaternion.y, z: headQuaternion.z, w: headQuaternion.w };
+    this.draft.framed = true;
+  }
+  invalidate(entity) {
+    entity.revision++;
+    entity.lastEdit = performance.now();
+    entity.shapeId = null;
+    entity.title = '나의 별자리';
+    entity.edges = [];
+  }
+  loadPreset(shape, headPosition = new Vector3(0, 1.6, 0), headQuaternion = new Quaternion()) {
+    this.remember();
+    this.draft = draft();
+    this.draft.position = point(headPosition.clone().add(new Vector3(0, 0, -.7).applyQuaternion(headQuaternion)));
+    this.draft.quaternion = { x: headQuaternion.x, y: headQuaternion.y, z: headQuaternion.z, w: headQuaternion.w };
+    this.draft.scale = .32;
+    this.draft.framed = true;
+    this.draft.stars = shape.points.map(p => ({ id: crypto.randomUUID(), x: p.x, y: p.y, z: 0 }));
+    this.draft.edges = structuredClone(shape.edges);
+    this.draft.shapeId = shape.id;
+    this.draft.title = shape.name;
+    this.draft.recognizedRevision = this.draft.revision;
+    this.changed();
+  }
   add(p) {
     if (!finite(p) || this.draft.stars.length >= VR_MAX_STARS) return null;
     this.remember();
-    const star = { id: crypto.randomUUID(), ...point(p) };
+    const star = { id: crypto.randomUUID(), ...point(this.local(this.draft, p)) };
     this.draft.stars.push(star);
-    this.draft.edges = spanningTree(this.draft.stars);
+    this.invalidate(this.draft);
     this.changed(this.draft.id);
+    this.dispatchEvent(new CustomEvent('star-effect', { detail: { kind: 'create', point: point(p) } }));
     return { entity: this.draft, star };
   }
   nearest(p, radius = 0.14) {
@@ -122,33 +135,37 @@ export class VRModel extends EventTarget {
     if (!target || !finite(p) || Math.hypot(p.x, p.y, p.z) > 30) return;
     Object.assign(target.star, point(this.local(target.entity, p)));
     target.entity.editing = true;
+    this.invalidate(target.entity);
     this.changed(target.entity.id);
   }
-  remove(target) {
+  remove(target, { remember = true } = {}) {
     if (!target) return;
-    this.remember();
+    if (remember) this.remember();
+    const at = this.world(target.entity, target.star);
+    this.dispatchEvent(new CustomEvent('star-effect', { detail: { kind: 'delete', point: point(at) } }));
     target.entity.stars = target.entity.stars.filter((s) => s.id !== target.star.id);
     if (target.entity !== this.draft && !target.entity.stars.length) {
       this.works = this.works.filter((work) => work.id !== target.entity.id);
       this.changed();
       return;
     }
-    target.entity.edges = spanningTree(target.entity.stars);
-    target.entity.editing = true;
-    this.endMove(target);
+    this.invalidate(target.entity);
+    delete target.entity.editing;
     this.changed(target.entity.id);
   }
-  identify(entity) {
+  identify(entity, result = null) {
     const points = entity.stars.map((s) => ({ x: s.x, y: s.y })),
-      best = matchShapes(points, SHAPES)[0];
+      best = result ? result.candidates[0] : matchShapes(points, SHAPES)[0];
     entity.shapeId = best?.similarity >= 48 ? best.shape.id : null;
     entity.title = entity.shapeId ? best.shape.name : '나의 별자리';
-    entity.edges = entity.shapeId ? buildConnections(points, best) : spanningTree(entity.stars);
+    entity.edges = entity.shapeId ? (result ? result.edges : buildConnections(points, best)) : [];
+    entity.recognizedRevision = entity.revision;
+    this.changed(entity.id);
   }
   endMove(target) {
     if (!target?.entity.editing) return;
     delete target.entity.editing;
-    if (target.entity !== this.draft) this.identify(target.entity);
+    target.entity.lastEdit = performance.now();
     this.changed(target.entity.id);
   }
   finish(headPosition = new Vector3(0, 1.6, 0), headQuaternion = new Quaternion()) {
@@ -159,13 +176,11 @@ export class VRModel extends EventTarget {
     const radius = Math.max(...this.draft.stars.map((s) => vec(s).distanceTo(center)));
     if (radius < 0.025) return null;
     this.remember();
-    const entity = this.draft,
-      inverse = headQuaternion.clone().invert();
+    const entity = this.draft;
     entity.stars = entity.stars.map((s) => ({
       id: s.id,
-      ...point(vec(s).sub(center).applyQuaternion(inverse).divideScalar(radius)),
+      ...point(vec(s).sub(center).divideScalar(radius)),
     }));
-    this.identify(entity);
     const forward = new Vector3(0, 0, -1).applyQuaternion(headQuaternion);
     this.anchor ||= { position: point(headPosition), yaw: Math.atan2(forward.x, -forward.z) };
     const occupied = new Set(this.works.map((work) => work.cell));

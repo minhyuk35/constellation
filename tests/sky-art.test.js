@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SHAPES } from '../src/data/shapes.js';
 import { skyIllustration, skyArtLayout } from '../src/exhibition/sky-art.js';
+import { artwork } from '../src/data/art.js';
+
+test('opaque zodiac and Stellarium mattes are keyed without changing transparent generated art', () => {
+  for (const shape of SHAPES) {
+    const art = artwork(shape);
+    assert.equal(art.blackMatte,art.src==='art/zodiac-atlas.png'||art.credit==='meuris',shape.id);
+  }
+});
 
 test('all existing catalogue titles resolve artwork, including rotated/reflected drawings', () => {
   for (const shape of SHAPES) {

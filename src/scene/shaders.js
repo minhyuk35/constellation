@@ -36,10 +36,10 @@ export const artVertex = `varying vec2 vUv;void main(){vUv=uv;gl_Position=projec
 export const artFragment = `
 uniform sampler2D uAtlas;uniform vec4 uRect;uniform float uExposure;uniform float uOpacity;uniform float uTime;uniform float uBlackKey;varying vec2 vUv;
 void main(){vec2 uv=uRect.xy+vUv*uRect.zw;vec4 tex=texture2D(uAtlas,uv);
- tex.a*=mix(1.,smoothstep(.003,.06,max(tex.r,max(tex.g,tex.b))),uBlackKey);
- float edge=smoothstep(0.,.08,vUv.x)*smoothstep(0.,.08,vUv.y)*smoothstep(0.,.08,1.-vUv.x)*smoothstep(0.,.08,1.-vUv.y);
- float l=dot(tex.rgb,vec3(.2126,.7152,.0722));
- vec3 color=mix(tex.rgb,vec3(l)*vec3(.78,.98,1.19),.67);
- float mist=.96+.04*sin(vUv.y*8.+uTime*.35);
- gl_FragColor=vec4(color*uExposure,tex.a*uOpacity*edge*mist);
+ // Keep the catalogue image's colours and fine shadow detail. Only legacy
+ // opaque black backgrounds need a key; transparent artwork keeps its alpha.
+ tex.a*=mix(1.,smoothstep(.0003,.006,max(tex.r,max(tex.g,tex.b))),uBlackKey);
+ gl_FragColor=vec4(tex.rgb*uExposure,tex.a*uOpacity);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
 }`;

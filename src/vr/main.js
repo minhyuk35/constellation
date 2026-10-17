@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { VRModel } from './VRModel.js';
 import { VRWorld } from './VRWorld.js';
 import { VRInput } from './VRInput.js';
+import { VRRecognition } from './VRRecognition.js';
+import { Catalogue } from '../ui/Catalogue.js';
+import { SHAPE_MAP } from '../data/shapes.js';
 
 const $ = (id) => document.getElementById(id);
 export const app = { model: new VRModel() };
@@ -18,6 +21,27 @@ try {
     desktop = { holding: null };
   const head = () =>
     world.renderer.xr.isPresenting ? world.renderer.xr.getCamera() : world.camera;
+  const catalogue = new Catalogue({ preset: shape => loadPreset(shape) });
+  catalogue.renderLibrary();
+  for (const tab of document.querySelectorAll('[data-filter]')) tab.onclick = () => {
+    for (const other of document.querySelectorAll('[data-filter]')) {
+      other.classList.toggle('active', tab === other);
+      other.setAttribute('aria-pressed', String(tab === other));
+    }
+    catalogue.libraryFilter = tab.dataset.filter; catalogue.renderLibrary();
+  };
+  $('library-search').oninput = () => catalogue.renderLibrary();
+  $('library-season').onchange = () => catalogue.renderLibrary();
+  $('library-dialog').querySelector('.close-dialog').onclick = () => $('library-dialog').close();
+  function loadPreset(shape) {
+    input.releaseAll(); input.release(desktop);
+    world.library.visible = false;
+    const camera = head();
+    app.model.loadPreset(shape, camera.getWorldPosition(new THREE.Vector3()), camera.getWorldQuaternion(new THREE.Quaternion()));
+    status(`${shape.name}를 불러왔어요. 별을 집어 옮기고 좌우로 흔들어 지워보세요.`);
+  }
+  const recognition = app.recognition = new VRRecognition(app.model, () => input.dragging || !!desktop.holding,
+    entity => { if (entity.shapeId) status(`${entity.title} 발견! 별을 옮기면 새로운 모양을 찾을 수 있어요.`); });
   function action(id) {
     input.releaseAll();
     input.release(desktop);
@@ -38,8 +62,15 @@ try {
       if (!app.model.undo()) status('되돌릴 작업이 없어요.');
     } else if (id === 'erase') {
       input.erase = !input.erase;
-      status(input.erase ? '지울 별을 집어주세요.' : '빈 공간을 집어 별을 놓아보세요.');
-    } else if (id === 'exit') session?.end();
+      status(input.erase ? '지울 별을 집어주세요.' : '주먹을 1초 쥐면 별이 생겨요. 별을 집어서 움직여보세요.');
+    } else if (id === 'library') {
+      if (world.renderer.xr.isPresenting) world.library.visible = !world.library.visible;
+      else $('library-dialog').showModal();
+    } else if (id.startsWith('preset:')) {
+      const shape = SHAPE_MAP.get(id.slice(7));
+      if (shape) loadPreset(shape);
+    } else if (id.startsWith('library-') || id.startsWith('filter:')) world.library.action(id);
+    else if (id === 'exit') session?.end();
     updateUI();
   }
   app.action = action;
@@ -48,11 +79,11 @@ try {
     if ($('vr-count').textContent !== count) $('vr-count').textContent = count;
     if ($('vr-erase').getAttribute('aria-pressed') !== String(input.erase))
       $('vr-erase').setAttribute('aria-pressed', String(input.erase));
-    world.updatePanel(input.erase);
+    world.updatePanel();
   }
   app.model.addEventListener('change', updateUI);
   updateUI();
-  for (const id of ['finish', 'undo', 'erase']) $(`vr-${id}`).onclick = () => action(id);
+  for (const id of ['finish', 'undo', 'erase', 'library']) $(`vr-${id}`).onclick = () => action(id);
   $('vr-enter').onclick = async () => {
     if (starting) return;
     if (session) {
@@ -70,6 +101,7 @@ try {
         requiredFeatures: ['local-floor'],
         optionalFeatures: ['hand-tracking'],
       });
+      $('library-dialog').close();
       session.addEventListener('visibilitychange', () => {
         if (session?.visibilityState !== 'visible') input.releaseAll();
       });
@@ -77,6 +109,7 @@ try {
         'end',
         () => {
           input.releaseAll();
+          world.library.visible = false;
           session = null;
           if (disposed) return;
           world.camera.position.copy(previewPose.position);
@@ -92,7 +125,7 @@ try {
       await world.renderer.xr.setSession(session);
       document.body.classList.add('in-vr');
       $('vr-enter').textContent = 'VR 나가기';
-      status('손을 앞으로 내밀고 엄지와 검지를 집어보세요.');
+      status('주먹을 1초 쥐면 별 생성 · 별을 집어서 이동 · 좌우로 흔들면 삭제됩니다.');
     } catch (error) {
       await session?.end().catch(() => {});
       session = null;
@@ -140,7 +173,7 @@ try {
     if (e.button === 2) rotating = { x: e.clientX, y: e.clientY, yaw, pitch };
     else if (e.button === 0) {
       drawing = true;
-      input.begin(desktop, pose(e));
+      input.begin(desktop, pose(e), { allowCreate: true });
     }
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -179,6 +212,7 @@ try {
       world.renderer.xr.updateCamera(world.camera);
       input.update(now);
     }
+    recognition.update(now);
     world.frame(now);
     world.renderer.render(world.scene, world.camera);
   });
@@ -192,6 +226,7 @@ try {
     disposed = true;
     input.releaseAll();
     session?.end();
+    recognition.dispose();
     world.dispose();
   });
 } catch (error) {

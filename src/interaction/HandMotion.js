@@ -64,9 +64,11 @@ export class HandMotion {
       y: this.target.y + dy * (1 - radius / distance),
     };
     this.transitionAt = receivedAt;
-    // No delayed frame queue or extrapolation: reach the newest target in
-    // 8–24 ms, and shorten that interval for fast movement.
-    this.duration = o.interpolationMs * (1 - response * 2 / 3);
+    // The old 8–24 ms lerp finished well before the next 65–90 ms inference,
+    // leaving the pointer motionless between samples. Bridge more of the actual
+    // capture interval, capped at 55 ms and shortened for fast movements.
+    const bridge = Math.min(o.maxInterpolationMs ?? 55, Math.max(o.interpolationMs, dt * 750));
+    this.duration = bridge * (1 - response * 2 / 3);
   }
   positionPixels(now) {
     const t = this.duration ? Math.max(0, Math.min(1, (now - this.transitionAt) / this.duration)) : 1;

@@ -10,6 +10,7 @@ import { matchShapes, normalize } from './recognition/matcher.js';
 import { saveArchive, readArchive } from './data/archive.js';
 import { ExhibitionKiosk } from './exhibition/kiosk.js';
 import { CONFIG } from './config.js';
+import { guidanceText } from './recognition/guidance.js';
 
 const model = new CanvasModel();
 const sound = new Soundscape();
@@ -27,6 +28,34 @@ let lastHandCount = -1,
 let inferredEdges = [];
 let poseIntensity = 0;
 let timelapseTimer = null;
+let currentGuide = null;
+
+function clearGuidance() {
+  currentGuide = null;
+  universe?.setGuidance(null);
+  $('constellation-guidance').hidden = true;
+}
+function showGuidance(guide) {
+  clearGuidance();
+  if (!guide) return;
+  currentGuide = { ...guide, sourceIds: model.stars.map(s => s.id) };
+  const aspect = universe.width / universe.height;
+  universe.setGuidance({ actions: guide.actions.map(a => ({ ...a,
+    starId: a.type === 'move' ? model.stars[a.index]?.id : null,
+    target: { x: a.target.x / aspect, y: -a.target.y },
+  })) });
+  setText('constellation-guidance', guidanceText(guide));
+  $('constellation-guidance').hidden = false;
+}
+function updateHandGuide(phase = hand?.gate?.state?.phase) {
+  const guide = $('hand-guide');
+  const visible = !!hand?.active && (!hand.detectedHands || (phase && phase !== 'active'));
+  guide.hidden = !visible;
+  if (visible) setText('hand-guide', !hand.detectedHands
+    ? '카메라 앞에서 손을 펼쳐주세요.'
+    : phase === 'arming' ? '손바닥을 잠시 그대로 펼쳐주세요. 이 손으로 시작할게요.'
+      : '카메라 중앙에서 손바닥을 1초 펼치면 조작할 수 있어요.');
+}
 
 function start() {
   if (active) return;
@@ -54,6 +83,7 @@ function updateDrawing(reveal = false) {
   ui.updateCount(model);
 }
 function applyResult(match, { example = false, save = true } = {}) {
+  clearGuidance();
   currentMatch = match;
   currentMatchIsExample = example;
   recognizedRevision = model.revision;
@@ -137,7 +167,7 @@ async function toggleCamera() {
   try {
     await hand.start();
     start();
-    ui.toast('화면 중앙에서 손바닥을 1초 펼치면 그 손으로 조작을 시작합니다.');
+    updateHandGuide();
     // Multi-visitor pose tracking is a bonus layer on the same camera feed;
     // its failure (e.g. no WebGL) must never block hand tracking from working.
     pose.start().catch((error) => console.warn('Pose tracking unavailable:', error));
@@ -149,7 +179,7 @@ async function toggleCamera() {
 function recognize(manual = false) {
   if (!active) start();
   if (model.dragging) return;
-  if (model.stars.length < CONFIG.minStars) {
+  if (model.stars.length < (manual ? CONFIG.minStars : 1)) {
     if (manual) ui.toast('별을 4개 이상 놓으면 닮은 모양을 찾아드릴게요.');
     return;
   }
@@ -162,7 +192,11 @@ function recognize(manual = false) {
   recognizing = true;
   $('scene-status').textContent = '별 사이의 모양을 찾는 중';
   $('auto-hint').textContent = '별 사이에 숨은 이야기를 찾고 있어요';
-  recognition.postMessage({ points: worldPoints(), revision: model.revision });
+  const aspect = universe.width / universe.height;
+  recognition.postMessage({ points: worldPoints(), revision: model.revision,
+    guidance: true, guide: currentGuide && { shapeId: currentGuide.shapeId, targets: currentGuide.targets },
+    bounds: { left: .08 * aspect, right: .92 * aspect, bottom: -.83, top: -.19, minGap: 50 / universe.height },
+  });
 }
 async function saveImage() {
   try {
@@ -326,8 +360,11 @@ try {
   });
   const callbacks = {
     activate: start,
+    pick: (p, radius) => universe.pickStar(model.stars, p, radius),
+    toDrawing: (p) => universe.fromScreen(p),
+    toScreen: (p) => universe.toScreen(p),
     toast: (message) => ui.toast(message),
-    burst: (p, strength) => universe.burst(p, strength),
+    burst: (p, strength, kind) => universe.burst(p, strength, kind),
     chime: () => sound.chime(model.stars.length),
   };
   pointer = new PointerController($('stage'), model, callbacks);
@@ -337,10 +374,16 @@ try {
       if (status === 'active' || status === 'off') {
         ui.cameraStatus(status);
         lastHandCount = -1;
+        if (status === 'off') document.body.classList.remove('hand-detected');
+        updateHandGuide();
         if (status === 'off') {
           $('gesture-hint').textContent = '별을 끌어 움직이거나 빈 곳을 눌러보세요';
         }
       } else ui.toast(status);
+    },
+    tracking: (count) => {
+      document.body.classList.toggle('hand-detected', count > 0);
+      updateHandGuide();
     },
     hands: (count) => {
       if (lastHandCount === count) return;
@@ -354,6 +397,7 @@ try {
     },
   });
   hand.callbacks.control = ({ phase, progress, session }) => {
+    updateHandGuide(phase);
     if (phase === 'active' && session !== hand.lastControlSession) {
       if (hand.lastControlSession != null) kiosk.newWork();
       hand.lastControlSession = session;
@@ -407,7 +451,10 @@ try {
       currentMatch = null;
       $('scene-status').textContent = '당신만의 새로운 모양';
       $('auto-hint').textContent = '별을 조금 옮기거나 도감의 모양을 참고해보세요';
-      ui.toast('아직 뚜렷이 닮은 모양이 없어요. 자유로운 별 배치는 그대로 남겨둘게요.');
+      showGuidance(data.guidance);
+      if (data.guidance) setText('auto-hint', '빛나는 별과 옅은 빛 자리를 따라 한 번 더 그려보세요');
+      else if (model.stars.length >= CONFIG.minStars)
+        ui.toast('아직 뚜렷이 닮은 모양이 없어요. 자유로운 별 배치는 그대로 남겨둘게요.');
       return;
     }
     // Inferred lines remain separate from explicit user connections so each
@@ -427,6 +474,8 @@ try {
     recognition = null;
   };
   model.addEventListener('change', ({ detail }) => {
+    if (currentGuide && (presetChange || !currentGuide.sourceIds.every(id => model.stars.some(s => s.id === id)) ||
+      model.stars.length > currentGuide.targets.length)) clearGuidance();
     if (detail.edited && !presetChange) {
       kiosk?.edited();
       inferredEdges = [];
@@ -443,21 +492,24 @@ try {
           : '잠시 손을 멈추면 닮은 모양이 드러납니다.');
     }
     updateDrawing();
+    if (currentGuide && !universe.guidanceOverlay.mesh.visible)
+      setText('constellation-guidance', `좋아요. 잠시 멈추면 ‘${currentGuide.name}’가 나타나요.`);
   });
   // Shaking a held star left and right deletes it — the only way to remove a
   // star while hand-tracking, since there is no Delete key mid-gesture.
   model.addEventListener('shake-delete', ({ detail }) => {
-    universe.burst(detail.star, 1.2);
+    universe.burst(detail.star, 1.2, 'delete');
     sound.pop();
     ui.toast('별을 흔들어 지웠어요. 되돌리기로 복원할 수 있어요.');
   });
+  model.addEventListener('star-remove', ({ detail }) => universe.burst(detail.star, 1.2, 'delete'));
   loadPreset(SHAPES[0], true);
   let lastHint = '';
   let lastSupernovaCheck = 0,
     lastSupernovaHour = -1;
   universe.start((dt, now) => {
     hand.tick(now);
-    pose.tick(now);
+    pose.tick(now, hand.detectedHands > 0);
     // Movement intensity reaching the ambient soundscape: how actively someone
     // is being tracked by the pose layer, or how recently a star was edited by
     // hand or mouse — whichever is more alive right now.
@@ -484,11 +536,11 @@ try {
       autoRecognize &&
       !document.querySelector('dialog[open]') &&
       !model.dragging &&
-      model.stars.length >= 4 &&
+      model.stars.length >= 1 &&
       model.revision !== recognizedRevision &&
       model.revision !== requestedRevision
     ) {
-      const remaining = CONFIG.recognizeDelay - (now - model.lastEdit);
+      const remaining = (model.stars.length < CONFIG.minStars ? CONFIG.guidanceDelay : CONFIG.recognizeDelay) - (now - model.lastEdit);
       if (remaining <= 0) recognize();
       else {
         const hint = `${Math.ceil(remaining / 1000)}초 뒤, 별 사이의 이야기가 드러납니다`;

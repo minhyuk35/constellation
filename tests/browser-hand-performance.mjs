@@ -26,6 +26,11 @@ try {
     const stars = Array.from({ length: 48 }, (_, i) => ({ id: `s${i}`, x: .2 + i % 8 * .08, y: .2 + Math.floor(i / 8) * .1 }));
     const edges = stars.slice(1).map((star, i) => [stars[i].id, star.id]);
     model.replace(stars, edges);
+    // This fixture measures unzoomed dragging; art-camera projection and its
+    // animation are exercised separately in browser-hand-picking.mjs.
+    scene.zoom = scene.zoomTarget = 1;
+    scene.camera.position.z = scene.baseCameraZ;
+    scene.camera.updateMatrixWorld();
     const geometry = scene.lines.geometry, position = geometry.attributes.position;
     let disposals = 0, textChanges = 0;
     geometry.addEventListener('dispose', () => disposals++);
@@ -84,7 +89,7 @@ try {
   assert.equal(result.disposals,0,'dragging/revealing/resizing never churns GPU geometry');
   assert.equal(result.stable,true);
   assert.equal(result.textChanges,0,'unchanged counts and guidance do not rebuild text during dragging');
-  assert.ok(result.cursorError<1,'CSS transform keeps the cursor centered on the filtered hand');
+  assert.ok(result.cursorError<1,`CSS transform keeps the cursor centered on the filtered hand: ${JSON.stringify(result)}`);
   assert.ok(result.drawingError<.001,'rendered star follows the hand position');
   assert.equal(result.denseCount,48*47);
   assert.ok(result.finalError<.001&&result.resizeError<.001);

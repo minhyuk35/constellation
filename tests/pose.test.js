@@ -131,3 +131,23 @@ test('a person who disappears is forgotten after the timeout, not before', () =>
   controller.integrate([], 0.1);
   assert.ok(!controller.people.has('a'), 'should be evicted after the timeout');
 });
+
+test('background pose refresh yields CPU time to visible hands and resumes its usual cadence after hand loss', async t => {
+  const previous = globalThis.createImageBitmap;
+  const previousDocument = globalThis.document;
+  globalThis.document = { hidden: false };
+  t.after(() => {
+    if(previous)globalThis.createImageBitmap=previous;else delete globalThis.createImageBitmap;
+    if(previousDocument)globalThis.document=previousDocument;else delete globalThis.document;
+  });
+  let captures=0;
+  globalThis.createImageBitmap=async()=>{captures++;return{close(){}};};
+  const controller=makeController({readyState:2,currentTime:0},{});
+  controller.worker={postMessage(){}};
+  controller.tick(200,false);await Promise.resolve();assert.equal(captures,1);
+  controller.busy=false;controller.inferenceMs=2000;controller.video.currentTime=1;
+  controller.tick(1000,true);assert.equal(captures,1);
+  controller.tick(6200,true);await Promise.resolve();assert.equal(captures,2);
+  controller.busy=false;controller.video.currentTime=2;
+  controller.tick(6500,false);await Promise.resolve();assert.equal(captures,3);
+});

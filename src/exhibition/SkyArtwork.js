@@ -5,8 +5,9 @@ import { artVertex, artFragment } from '../scene/shaders.js';
 // Load only the part of the sky near the camera. Shared atlases have a single
 // GPU texture; release it when the last nearby constellation leaves the view.
 export class SkyArtwork {
-  constructor() {
+  constructor({ blending = THREE.NormalBlending } = {}) {
     this.assets = new Map();
+    this.blending = blending;
     this.loader = new THREE.TextureLoader();
   }
   update(works, camera, forward, now) {
@@ -20,7 +21,7 @@ export class SkyArtwork {
       if (dot < releaseAt) this.release(entry);
       if (entry.artMesh) {
         entry.artMesh.material.uniforms.uTime.value = now;
-        entry.artMesh.material.uniforms.uOpacity.value = entry.focused ? 0.85 : 0.62;
+        entry.artMesh.material.uniforms.uOpacity.value = entry.focused ? 0.96 : 0.88;
       }
     }
   }
@@ -46,15 +47,16 @@ export class SkyArtwork {
       if (!layout) { this.release(entry); entry.artFailed = true; return; }
       const { x, y, w, h } = art.rect;
       const material = new THREE.ShaderMaterial({
+        blending: this.blending,
         vertexShader: artVertex, fragmentShader: artFragment,
         transparent: true, depthWrite: false,
         uniforms: {
           uAtlas: { value: texture }, uRect: { value: new THREE.Vector4(x, 1 - y - h, w, h) },
-          uExposure: { value: art.credit === 'meuris' ? 2.1 : 1.25 },
-          // Older Stellarium images have black mattes. Remove only their dark
-          // background in the AR shader, keeping the original image untouched.
-          uBlackKey: { value: art.credit === 'meuris' ? 1 : 0 },
-          uOpacity: { value: 0.62 }, uTime: { value: 0 },
+          uExposure: { value: 1 },
+          // Stellarium images and the zodiac atlas have opaque black mattes.
+          // Other illustrations already have alpha, which must stay intact.
+          uBlackKey: { value: art.blackMatte ? 1 : 0 },
+          uOpacity: { value: 0.88 }, uTime: { value: 0 },
         },
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);

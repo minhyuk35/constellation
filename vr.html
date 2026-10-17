@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#040913" />
     <title>Constellation · VR 우주</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E✧%3C/text%3E%3C/svg%3E" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='28'%3E✧%3C/text%3E%3C/svg%3E"
+    />
     <link rel="stylesheet" href="/styles/vr.css" />
   </head>
   <body>
@@ -19,15 +22,15 @@
       <p class="eyebrow">A UNIVERSE AROUND YOU</p>
       <h1>손끝에 놓은 별,<br />나를 둘러싼 우주.</h1>
       <p>
-        빈 공간을 집어 별을 만들고, 별을 집어서 움직여보세요.<br />완성한 별자리를 띄우면 다음
-        이야기를 만들 수 있어요.
+        주먹을 1초 쥐어 별을 만들고, 별을 집어서 움직여보세요.<br />완성한 별자리를 띄우면 다음
+        이야기를 만들 수 있어요. 별을 좌우로 흔들면 사라집니다.
       </p>
       <button id="vr-enter" disabled>Meta Quest로 VR 시작</button>
       <p id="vr-status" role="status">VR 지원을 확인하고 있어요.</p>
     </section>
     <footer class="vr-chrome">
       <div class="vr-tools">
-        <button id="vr-finish">완성해서 띄우기 ↗</button><button id="vr-undo">되돌리기</button
+        <button id="vr-library">별자리 도감 · 200</button><button id="vr-finish">완성해서 띄우기 ↗</button><button id="vr-undo">되돌리기</button
         ><button id="vr-erase" aria-pressed="false">별 지우기</button>
       </div>
       <p>
@@ -41,6 +44,68 @@
         · 창작 삽화: AI 생성</small
       >
     </footer>
+    <dialog id="library-dialog" class="panel-dialog library-dialog">
+      <div class="dialog-heading">
+        <div>
+          <div class="eyebrow">THE CELESTIAL COLLECTION</div>
+          <h2>별이 품은 이야기</h2>
+        </div>
+        <button class="icon-button close-dialog" aria-label="닫기">닫기</button>
+      </div>
+      <p class="dialog-intro">
+        황도 12궁을 포함한 공식 별자리 88개와 상상으로 만든 모양 112개. 200개의 이야기 중 하나를 골라 펼쳐보세요.
+      </p>
+      <div class="filter-tabs" role="group" aria-label="도감 분류">
+        <button class="active" data-filter="zodiac">황도 12궁 <span>12</span></button>
+        <button data-filter="constellation">공식 별자리 <span>88</span></button>
+        <button data-filter="object">상상의 모양 <span>112</span></button>
+        <button data-filter="all">전체 <span>200</span></button>
+      </div>
+      <div class="library-tools">
+        <label class="library-search"
+          ><i data-lucide="scan"></i
+          ><input
+            id="library-search"
+            type="search"
+            placeholder="이름으로 찾기 · 양자리, Leo, 북두칠성"
+            aria-label="별자리 이름 검색"
+        /></label>
+        <select id="library-season" aria-label="하늘별 필터">
+          <option value="">모든 하늘</option>
+          <option value="spring">봄 하늘</option>
+          <option value="summer">여름 하늘</option>
+          <option value="autumn">가을 하늘</option>
+          <option value="winter">겨울 하늘</option>
+          <option value="northern">북쪽 하늘</option>
+          <option value="southern">남쪽 하늘</option>
+        </select>
+      </div>
+      <div id="library-count" class="library-count" role="status" aria-live="polite"></div>
+      <div id="library-grid" class="library-grid"></div>
+      <p id="library-empty" class="empty-archive" hidden>
+        일치하는 이야기가 없어요. 검색어나 하늘 분류를 바꿔보세요.
+      </p>
+      <p class="small-note">
+        공식 별자리 88개와 상상의 모양 112개를 담았습니다. 자유 배치는 별 4개 이상인 형태와 비교합니다.
+        가까운 별의 간격을 넓힌 감상용 투영이며, 생일 구간은 일반적인 12궁 분류로 실제 태양의 위치와
+        다릅니다. 계절은 한국 중위도 저녁 하늘의 대략적인 분류이며, 남쪽 하늘에는 한국에서 보기
+        어려운 별자리도 포함됩니다.
+        <br />좌표:
+        <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noreferrer"
+          >d3-celestial · BSD 3-Clause</a
+        >
+        · 삽화: AI 제작 /
+        <a
+          href="https://johanmeuris.eu/work/stellarium-constellation-art/"
+          target="_blank"
+          rel="noreferrer"
+          >Johan Meuris · Stellarium</a
+        >
+        (<a href="https://artlibre.org/licence/lal/en/" target="_blank" rel="noreferrer"
+          >Free Art License 1.3</a
+        >).
+      </p>
+    </dialog>
     <script type="module" src="/src/vr/main.js"></script>
   </body>
 </html>

@@ -7,7 +7,9 @@ export const CONFIG = Object.freeze({
   fistHold: 1050,
   handLostAfter: 250,
   handDetectInterval: 33,
-  handGrabRadius: 76, // CSS pixels; only hand picking, not mouse or fist placement.
+  handGrabRadius: 14, // CSS px from the visible star to the cursor centre, not its outer ring.
+  vrRecognizeDelay: 2000,
+  guidanceDelay: 1200,
   handControl: Object.freeze({
     enabled: true,
     armMs: 1000,
@@ -26,8 +28,9 @@ export const CONFIG = Object.freeze({
     movingDeadZone: 0.25,
     responsiveSpeed: 350,
     interpolationMs: 24,
+    maxInterpolationMs: 55,
   }),
-  handGestures: Object.freeze({ pinchEnter: 0.32, pinchExit: 0.48, confirmMs: 30 }),
+  handGestures: Object.freeze({ pinchEnter: 0.40, pinchExit: 0.56, confirmMs: 30 }),
   particleCount: 9500,
   presenceCount: 360,
   poseDetectInterval: 110,

@@ -5,8 +5,9 @@ import * as poseDetection from '@tensorflow-models/pose-detection';
 // CPU backend, not WebGL: MoveNet runs alongside Three.js's own WebGL
 // renderer on the main thread, so a GPU backend here would queue its work
 // behind (and compete for the same driver/GPU resources as) the render loop.
-// Running in a worker at all keeps the inference off the main thread
-// entirely, so even a slow frame here never stalls rendering or hand tracking.
+// A worker keeps its JS work off the render thread, but it still shares the CPU
+// and power budget with hand inference. PoseController reduces its duty cycle
+// while a hand is visible; worker separation alone does not prevent contention.
 let detector;
 self.onmessage = async ({ data }) => {
   if (data.type === 'init') {

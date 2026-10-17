@@ -26,13 +26,13 @@ export class PointerController {
   down(e) {
     if (e.button !== 0 || this.pointerId !== null) return;
     this.callbacks.activate();
-    const p = this.point(e),
-      star = this.model.nearest(
+    const p = this.point(e), radius = e.pointerType === 'touch' ? 38 : 25,
+      star = this.callbacks.pick ? this.callbacks.pick(p, radius) : this.model.nearest(
         p.x,
         p.y,
         this.stage.clientWidth,
         this.stage.clientHeight,
-        e.pointerType === 'touch' ? 38 : 25,
+        radius,
       );
     if (this.mode === 'connect') {
       if (!star) {
@@ -55,16 +55,17 @@ export class PointerController {
         this.stage.setPointerCapture(e.pointerId);
       }
     } else {
-      const created = this.model.add(p.x, p.y);
+      const drawing = this.callbacks.toDrawing?.(p) || p;
+      const created = this.model.add(drawing.x, drawing.y);
       if (created) {
-        this.callbacks.burst(p);
+        this.callbacks.burst(created);
         this.callbacks.chime();
       } else this.callbacks.toast('한 하늘에 별은 48개까지 놓을 수 있어요.');
     }
   }
   move(e) {
     if (this.held && e.pointerId === this.pointerId) {
-      const p = this.point(e);
+      const screen = this.point(e), p = this.callbacks.toDrawing?.(screen) || screen;
       this.model.move(this.held, p.x, p.y);
     }
   }

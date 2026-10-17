@@ -1,3 +1,4 @@
+@import './panels.css';
 * {
   box-sizing: border-box;
 }
@@ -182,3 +183,8 @@ footer small a {
     line-height: 1.6;
   }
 }
+
+.library-dialog button { color: inherit; background-color: transparent; }
+.library-dialog .library-card { background-color: #a9cce604; }
+.library-dialog .close-dialog { border: 1px solid #55718855; border-radius: 6px; padding: 8px 12px; font-size: 11px; }
+.vr-tools { flex-wrap: wrap; }

@@ -50,7 +50,9 @@ $('creator-form').onsubmit = async (event) => {
     $('view-sky').hidden = false;
     $('creator-status').textContent = '이야기를 남겼어요. 당신의 별이 떠 있는 하늘로 이동합니다.';
     // Include this work in the 30-piece sample, without aiming the camera at it.
-    try { sessionStorage.setItem('constellation-latest-owned', id); } catch {}
+    try {
+      sessionStorage.setItem('constellation-latest-owned', id);
+    } catch {}
     location.replace('sky.html');
   } catch (error) {
     $('creator-status').textContent = error.message;

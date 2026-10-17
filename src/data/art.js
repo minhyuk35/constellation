@@ -16,7 +16,9 @@ export function artwork(shape) {
     w: 1 / art.grid,
     h: rows ? rows[row + 1] - rows[row] : 1 / art.grid,
   };
-  return { ...art, rect };
+  return { ...art, rect,
+    blackMatte: art.blackMatte ?? (art.credit === 'meuris' || art.src === 'art/zodiac-atlas.png'),
+  };
 }
 export function artCredit(shape) {
   if (artwork(shape).credit === 'lucide') return 'Lucide 도안을 바탕으로 만든 창작 별자리 · ISC';

@@ -59,7 +59,10 @@ export class PoseController {
       }
       worker.onmessage = ({ data }) => {
         this.busy = false;
-        if (data.type === 'result') this.integrate(data.poses, this.pendingDt ?? 0.1);
+        if (data.type === 'result') {
+          this.inferenceMs = performance.now() - this.lastFrame;
+          this.integrate(data.poses, this.pendingDt ?? 0.1);
+        }
       };
       worker.onerror = () => {
         this.stop();
@@ -87,9 +90,12 @@ export class PoseController {
   // Called every render frame; internally throttled so a frame is only handed
   // to the worker a handful of times a second, and never while it's still
   // busy with the previous one — independent of the render loop's frame rate.
-  tick(now) {
+  tick(now, handActive = false) {
     if (!this.active || this.busy || document.hidden) return;
-    if (now - this.lastFrame < CONFIG.poseDetectInterval) return;
+    // A CPU pose inference can take seconds. Avoid running it back-to-back
+    // while hands need low latency; keep cached presence and occasional refreshes.
+    const interval = handActive ? Math.max(1200, (this.inferenceMs || 1000) * 3) : CONFIG.poseDetectInterval;
+    if (now - this.lastFrame < interval) return;
     if (this.video.readyState < 2 || this.lastVideo === this.video.currentTime) return;
     this.busy = true;
     this.lastFrame = now;

@@ -30,10 +30,17 @@ test('open palm and closed fist classification is invariant to hand rotation and
 });
 test('pinch hysteresis holds a grabbed star through small fingertip jitter', () => {
   const points = landmarks();
-  points[4] = { ...points[8], x: points[8].x + 0.12 };
+  points[4] = { ...points[8], x: points[8].x + 0.145 };
   assert.notEqual(classifyHand(points).gesture, 'pinch');
   assert.equal(classifyHand(points, 'pinch').gesture, 'pinch');
   points[4].x += 0.12;
+  assert.notEqual(classifyHand(points, 'pinch').gesture, 'pinch');
+});
+test('a slightly separated thumb/index can grab without fully touching, but an open hand releases', () => {
+  const points = landmarks();
+  points[4] = { ...points[8], x: points[8].x + .11 };
+  assert.equal(classifyHand(points).gesture, 'pinch');
+  points[4].x = points[8].x + .18;
   assert.notEqual(classifyHand(points, 'pinch').gesture, 'pinch');
 });
 test('missing landmarks release tracking and a fist cannot accidentally become a pinch', () => {

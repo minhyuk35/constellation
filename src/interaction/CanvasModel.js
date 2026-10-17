@@ -113,11 +113,13 @@ export class CanvasModel extends EventTarget {
   }
   removeSelected() {
     if (!this.selected || this.dragging) return;
+    const star = this.stars.find((s) => s.id === this.selected);
     this.remember();
     this.stars = this.stars.filter((s) => s.id !== this.selected);
     this.edges = this.edges.filter((e) => !e.includes(this.selected));
     this.selected = null;
     this.changed();
+    if (star) this.dispatchEvent(new CustomEvent('star-remove', { detail: { star } }));
   }
   connect(a, b) {
     if (a === b || !this.stars.some((s) => s.id === a) || !this.stars.some((s) => s.id === b))

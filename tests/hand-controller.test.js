@@ -91,20 +91,74 @@ test('render frames move the star while inference is busy; shake sees only camer
   assert.equal(layer.children[0].style.transform, `translate3d(${star.x * 100}vw, ${star.y * 100}vh, 0) translate(-50%, -50%)`);
 });
 
-test('hand picking reaches 76 CSS pixels and chooses the nearest star', () => {
+test('hand picking requires the cursor centre over the star, not a nearby outer ring', () => {
   const { controller, model, frame } = setup();
   const farther = model.add(.5, .5), closer = model.add(.55, .5);
-  frame([hand(.62)], 100);
-  frame([hand(.62)], 140);
-  assert.ok(model.draggers.has(closer.id), '70px away is reachable without precise fingertip placement');
+  frame([hand(.562)], 100);
+  frame([hand(.562)], 140);
+  assert.ok(model.draggers.has(closer.id), '12px overlaps the visible star');
   assert.equal(model.draggers.has(farther.id), false);
   controller.releaseAll();
-  const other = setup();
-  other.model.add(.5, .5);
-  other.frame([hand(.578)], 100);
-  other.frame([hand(.578)], 140);
-  assert.equal(other.model.dragging, false, '78px is outside the new radius');
-  assert.equal(other.model.nearest(.56, .5, 1000, 1000), null, 'default mouse picking stays narrow');
+  for (const offset of [18, 30, 50, 69]) {
+    const other = setup();
+    other.model.add(.5, .5);
+    other.frame([hand(.5 + offset / 1000)], 100);
+    other.frame([hand(.5 + offset / 1000)], 140);
+    assert.equal(other.model.dragging, false, `${offset}px separation cannot grab a star`);
+    assert.equal(other.model.history.length, 1, 'misses do not add undo entries');
+  }
+});
+
+test('grabbing near a star preserves its position until the hand actually moves', () => {
+  const { model, frame } = setup(), star = model.add(.5, .5);
+  frame([hand(.51)],100); frame([hand(.51)],140);
+  assert.ok(model.dragging); assert.ok(Math.abs(star.x-.5)<1e-9);
+  frame([hand(.53)],180); frame([hand(.53)],220);
+  assert.ok(star.x>.51 && star.x<.525);
+});
+
+test('hand picks and drags the projected star while the art camera changes zoom', () => {
+  const { controller, model, frame } = setup();
+  let zoom = 2;
+  const toScreen = p => ({ x:.5+(p.x-.5)/zoom, y:.5+(p.y-.5)/zoom });
+  controller.callbacks.toScreen = toScreen;
+  controller.callbacks.toDrawing = p => ({ x:.5+(p.x-.5)*zoom, y:.5+(p.y-.5)*zoom });
+  controller.callbacks.pick = (p, radius) => model.stars.find(s => {
+    const q = toScreen(s);
+    return Math.hypot((q.x-p.x)*1000,(q.y-p.y)*1000) < radius;
+  });
+  const star = model.add(.8,.3);
+  frame([hand(.65,.4)],100); frame([hand(.65,.4)],140);
+  assert.ok(model.draggers.has(star.id), 'pick uses the displayed position, not .8/.3');
+  assert.ok(Math.abs(star.x-.8)<1e-9, 'grabbing does not snap the star');
+  zoom = 1.7;
+  controller.tick(180);
+  assert.ok(Math.hypot(toScreen(star).x-.65,toScreen(star).y-.4)<1e-9,
+    'the held star stays with the cursor through the camera animation');
+});
+
+test('folding fingertips into a fist leaves the cursor and new star at the same stationary palm position', () => {
+  const { controller, model, frame } = setup(), opened = hand(.5,.4,'open');
+  frame([opened],100); frame([opened],140);
+  const initial = { x:controller.slots[0].x, y:controller.slots[0].y };
+  const folded = structuredClone(opened);
+  for (const tip of [8,12,16,20]) folded[tip] = { ...folded[tip], y:folded[0].y-.2 };
+  folded[4] = { ...folded[8] };
+  for(let t=180;t<1500;t+=40) frame([folded],t);
+  assert.ok(Math.abs(controller.slots[0].x-initial.x)<.001);
+  assert.ok(Math.abs(controller.slots[0].y-initial.y)<.001);
+  assert.equal(model.stars.length,1);
+  assert.ok(Math.abs(model.stars[0].x-initial.x)<.001);
+});
+
+test('raw visible hands are reported even before exclusive control arms, and expire on tracking loss', () => {
+  const { controller, frame } = setup(true), counts=[];
+  controller.callbacks.tracking=count=>counts.push(count);
+  frame([hand(.5,.4,'fist')],100);
+  assert.equal(controller.detectedHands,1);
+  assert.equal(controller.slots.every(s=>s.gesture==='lost'),true);
+  controller.tick(400);
+  assert.deepEqual(counts,[1,0]);
 });
 
 test('a smooth fast drag is not mistaken for a shake when rendered positions lag', () => {

@@ -10,6 +10,8 @@ import {
 } from './shaders.js';
 import { transformPoint } from '../recognition/matcher.js';
 import { artwork } from '../data/art.js';
+import { StarParticles } from './StarParticles.js';
+import { GuidanceOverlay } from './GuidanceOverlay.js';
 
 // How much larger the illustration is than the star shape's own spread, and
 // the constant on-screen size (in CSS pixels) it holds to once the camera
@@ -44,7 +46,7 @@ export class Universe {
     this.clock = 0;
     this.lastTime = 0;
     this.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.artOpacity = 0.32;
+    this.artOpacity = 0.88;
     this.artFade = 0;
     this.artTarget = 0;
     this.quality = 'auto';
@@ -55,11 +57,12 @@ export class Universe {
     this.lineFadeTarget = 1;
     this.zoom = 1;
     this.zoomTarget = 1;
-    this.bursts = [];
     this.resize();
     this.makeSky();
     this.makeStars();
     this.makeDrawing();
+    this.starParticles = new StarParticles(this.scene);
+    this.guidanceOverlay = new GuidanceOverlay(this.scene);
     this.makeArt();
     this.makePresence();
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -207,7 +210,6 @@ export class Universe {
     this.selection.visible = false;
     this.selection.position.z = 4;
     this.scene.add(this.selection);
-    this.ringGeometry = new THREE.RingGeometry(1, 1.013, 96);
   }
 
   makeArt() {
@@ -229,7 +231,7 @@ export class Universe {
       },
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       side: THREE.DoubleSide,
     });
     this.art = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.artMaterial);
@@ -293,6 +295,27 @@ export class Universe {
   toWorld(p) {
     return { x: (p.x - 0.5) * this.width, y: (0.5 - p.y) * this.height };
   }
+  // The drawing plane stays at z=0 while the art camera eases backwards.
+  // Input must use this frame's projection, not the unzoomed model position.
+  toScreen(p) {
+    const scale = this.baseCameraZ / this.camera.position.z;
+    return { x: 0.5 + (p.x - 0.5) * scale, y: 0.5 + (p.y - 0.5) * scale };
+  }
+  fromScreen(p) {
+    const scale = this.camera.position.z / this.baseCameraZ;
+    return { x: 0.5 + (p.x - 0.5) * scale, y: 0.5 + (p.y - 0.5) * scale };
+  }
+  pickStar(stars, p, radius) {
+    const scale = this.baseCameraZ / this.camera.position.z;
+    let found = null, best = radius * radius;
+    for (const star of stars) {
+      const dx = (0.5 + (star.x - 0.5) * scale - p.x) * this.width;
+      const dy = (0.5 + (star.y - 0.5) * scale - p.y) * this.height;
+      const distance = dx * dx + dy * dy;
+      if (distance < best) { best = distance; found = star; }
+    }
+    return found;
+  }
   setDrawing(stars, edges, selected = null, reveal = false) {
     this.starData = stars;
     // On a fresh reveal, trace the connections outward from the star the
@@ -307,6 +330,11 @@ export class Universe {
       this.lineOpacity = 1;
     }
     this.syncDrawing();
+    if (this.guidance) this.setGuidance(this.guidance);
+  }
+  setGuidance(guide) {
+    this.guidance = guide;
+    this.guidanceOverlay.set(guide, this.starData, p => this.toWorld(p), this.width, this.height);
   }
   // A depth-first walk of the star graph starting at `anchorId` (falling back
   // to the first star): it fully follows one branch before backtracking to
@@ -413,7 +441,8 @@ export class Universe {
         this.artMaterial.uniforms.uGrid.value = art.grid;
         const { x, y, w, h } = art.rect;
         this.artMaterial.uniforms.uRect.value.set(x, 1 - y - h, w, h);
-        this.artMaterial.uniforms.uExposure.value = art.credit === 'meuris' ? 2.1 : 1;
+        this.artMaterial.uniforms.uExposure.value = 1;
+        this.artMaterial.uniforms.uBlackKey.value = art.blackMatte ? 1 : 0;
         this.artMaterial.uniforms.uTile.value.set(
           art.tile % art.grid,
           art.grid - 1 - Math.floor(art.tile / art.grid),
@@ -497,21 +526,9 @@ export class Universe {
   dissolveLines() {
     this.lineFadeTarget = 0;
   }
-  burst(point, strength = 1) {
-    if (this.reducedMotion || this.bursts.length > 10) return;
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xb8ddea,
-      transparent: true,
-      opacity: 0.3,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
-    const mesh = new THREE.Mesh(this.ringGeometry, material);
-    const p = this.toWorld(point);
-    mesh.position.set(p.x, p.y, 3);
-    this.scene.add(mesh);
-    this.bursts.push({ mesh, age: 0, strength });
+  burst(point, strength = 1, kind = 'create') {
+    if (this.reducedMotion) return;
+    this.starParticles.emit({ ...this.toWorld(point), z: 3 }, { kind, radius: 85 * strength });
   }
   start(onFrame) {
     this.renderer.setAnimationLoop((now) => {
@@ -519,7 +536,14 @@ export class Universe {
       this.lastTime = now;
       if (document.hidden) return;
       if (!this.reducedMotion) this.clock += dt;
+      // Update before input so picking and dragging use the camera that will
+      // actually render this frame, including during the art's dolly animation.
+      this.zoom += (this.zoomTarget - this.zoom) * (this.reducedMotion ? 1 : Math.min(1, dt * 1.6));
+      this.camera.position.z = this.baseCameraZ * this.zoom;
       onFrame?.(dt, now);
+      this.starParticles.reducedMotion = this.reducedMotion;
+      this.starParticles.update(now / 1000);
+      this.guidanceOverlay.update(now / 1000, this.camera, this.renderer.getPixelRatio(), this.reducedMotion);
       this.tickPresence(dt);
       this.skyMaterial.uniforms.uTime.value = this.clock;
       for (const obj of [this.backgroundStars, this.drawingStars])
@@ -528,8 +552,6 @@ export class Universe {
       // A camera dolly, not a resize: everything at world z≈0 (stars, lines)
       // shrinks toward the frame's center as the camera eases back, while the
       // art's own scale already compensates so it holds a constant size.
-      this.zoom += (this.zoomTarget - this.zoom) * (this.reducedMotion ? 1 : Math.min(1, dt * 1.6));
-      this.camera.position.z = this.baseCameraZ * this.zoom;
       for (const obj of [this.backgroundStars, this.drawingStars])
         obj.material.uniforms.uDepth.value = this.camera.position.z;
       this.lineOpacity +=
@@ -548,17 +570,6 @@ export class Universe {
           ? 1
           : Math.min(1, this.reveal + (dt * SEGMENT_REVEAL_RATE) / segments);
         this.applyLineReveal();
-      }
-      for (let i = this.bursts.length - 1; i >= 0; i--) {
-        const b = this.bursts[i];
-        b.age += dt;
-        b.mesh.scale.setScalar(8 + b.age * 150 * b.strength);
-        b.mesh.material.opacity = 0.2 * (1 - b.age / 1.8);
-        if (b.age >= 1.8) {
-          this.scene.remove(b.mesh);
-          b.mesh.material.dispose();
-          this.bursts.splice(i, 1);
-        }
       }
       this.renderer.render(this.scene, this.camera);
     });
@@ -741,6 +752,8 @@ export class Universe {
     this.artRequest++;
     for (const texture of this.artTextures.values()) texture.dispose();
     this.artTextures.clear();
+    this.starParticles.dispose();
+    this.guidanceOverlay.dispose();
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();
     this.scene.traverse((obj) => {

@@ -114,7 +114,9 @@
         <div class="eyebrow">YOUR CELESTIAL CANVAS</div>
         <h2>어떤 이야기를 그려볼까요?</h2>
         <p id="drawing-hint">빈 공간을 눌러 별을 만들어보세요.</p>
+        <p id="constellation-guidance" class="constellation-guidance" role="status" hidden></p>
       </section>
+      <p id="hand-guide" class="hand-guide" role="status" hidden></p>
       <div class="bottom-area chrome">
         <div class="toolbar" role="toolbar" aria-label="별 그리기 도구">
           <div class="tool-group modes">
@@ -361,8 +363,8 @@
         <button class="icon-button close-dialog" aria-label="닫기"><i data-lucide="x"></i></button>
       </div>
       <label class="setting-row" for="art-opacity"
-        ><span>그림의 선명도</span><output id="opacity-value">32%</output></label
-      ><input id="art-opacity" type="range" min="0" max="0.8" step="0.01" value="0.32" />
+        ><span>그림의 선명도</span><output id="opacity-value">88%</output></label
+      ><input id="art-opacity" type="range" min="0" max="1" step="0.01" value="0.88" />
       <label class="setting-row" for="sky-brightness"
         ><span>은하수 밝기</span><output id="brightness-value">65%</output></label
       ><input id="sky-brightness" type="range" min="0.15" max="1" step="0.01" value="0.65" />
