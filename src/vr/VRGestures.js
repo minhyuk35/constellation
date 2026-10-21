@@ -19,11 +19,11 @@ export class VRGestures {
     }
     const before = this.state.gesture, gesture = this.state.update(points, now);
     const raw = classifyHand(points, before).gesture;
-    if (raw === 'open' || raw === 'point') this.ready = true;
+    if (raw === 'open' || raw === 'point' || (gesture === 'fist' && raw === 'fist')) this.ready = true;
     let spawn = false;
     if (gesture === 'fist') {
       if (this.fistAt === null) this.fistAt = now;
-      if (!this.spawned && now - this.fistAt >= CONFIG.fistHold) {
+      if (!this.spawned && raw === 'fist' && !this.state.pending && now - this.fistAt >= CONFIG.fistHold) {
         this.spawned = spawn = true;
         this.ready = true;
       }

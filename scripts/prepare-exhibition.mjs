@@ -29,6 +29,10 @@ const config = existsSync(path)
       d1_databases: [],
     };
 config.vars = { PUBLIC_ORIGIN: site.origin };
+config.durable_objects = { bindings: [{ name: 'VR_MONITOR', class_name: 'VRMonitorRoom' }] };
+config.migrations ||= [];
+if (!config.migrations.some(m => m.tag === 'vr-monitor-v1'))
+  config.migrations.push({ tag: 'vr-monitor-v1', new_sqlite_classes: ['VRMonitorRoom'] });
 for (const database of config.d1_databases) database.migrations_dir = 'migrations';
 writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
 if (!existsSync('exhibition-secrets.local.json'))

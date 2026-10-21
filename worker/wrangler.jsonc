@@ -4,6 +4,8 @@
   "main": "index.js",
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
+  "durable_objects": { "bindings": [{ "name": "VR_MONITOR", "class_name": "VRMonitorRoom" }] },
+  "migrations": [{ "tag": "vr-monitor-v1", "new_sqlite_classes": ["VRMonitorRoom"] }],
   "d1_databases": [
     {
       "binding": "DB",

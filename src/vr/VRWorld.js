@@ -1,9 +1,14 @@
 import * as THREE from 'three';
 import { SkyArtwork } from '../exhibition/SkyArtwork.js';
 import { skyIllustration } from '../exhibition/sky-art.js';
-import { VR_MAX_STARS, VR_MAX_WORKS } from './VRModel.js';
+import { VR_MAX_STARS } from './VRModel.js';
 import { StarParticles } from '../scene/StarParticles.js';
+import { StarTrails } from '../scene/StarTrails.js';
 import { VRLibrary } from './VRLibrary.js';
+import { VREnvironment } from './VREnvironment.js';
+import { VRStars } from './VRStars.js';
+import { VRDesk } from './VRDesk.js';
+import { VRGuideVisuals } from './VRGuideVisuals.js';
 
 const palette = ['#c6e8ff', '#e6cba0', '#d2c3f2', '#9ddbcf'];
 function textTexture(text, width = 1024, height = 96) {
@@ -35,15 +40,17 @@ function label(text, width, height) {
 }
 
 export class VRWorld {
-  constructor(container, model, action) {
+  constructor(container, model, action, { spectator = false } = {}) {
     this.container = container;
     this.model = model;
     this.action = action;
+    this.spectator = spectator;
+    this.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.entries = new Map();
-    this.artwork = new SkyArtwork();
+    this.artwork = new SkyArtwork({ opacity: 0.76, focusedOpacity: 0.76 });
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#040913');
-    this.camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.03, 90);
+    this.camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 0.03, 90);
     this.camera.position.set(0, 1.6, 0);
     this.scene.add(this.camera);
     this.renderer = new THREE.WebGLRenderer({
@@ -51,23 +58,29 @@ export class VRWorld {
       powerPreference: 'high-performance',
     });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-    this.renderer.setSize(innerWidth, innerHeight);
+    this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.xr.enabled = true;
     this.renderer.xr.setReferenceSpaceType('local-floor');
     this.renderer.xr.setFoveation(1);
     container.append(this.renderer.domElement);
     this.scene.add(new THREE.HemisphereLight('#d5eaff', '#273044', 2));
+    const key=new THREE.DirectionalLight('#c7e4ff',2.6);key.position.set(-3,6,3);this.scene.add(key);
+    const rim=new THREE.DirectionalLight('#e4bc82',1.6);rim.position.set(4,3,-5);this.scene.add(rim);
     this.starTexture = this.makeStarTexture();
+    this.starFields = new VRStars();
     this.makeEnvironment();
     this.makePanel();
-    this.library = new VRLibrary(this.camera, this.starTexture, label);
-    this.particles = new StarParticles(this.scene, { reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches });
+    this.library = new VRLibrary(this.uiAnchor, this.starTexture, label);
+    this.anchorUI(this.camera);
+    this.guide=new VRGuideVisuals(this,label,textTexture);
+    this.particles = new StarParticles(this.scene, { reducedMotion: this.reducedMotion, spatial: true });
+    this.starTrails=new StarTrails(this.scene,{reducedMotion:this.reducedMotion});this.trailPoint=new THREE.Vector3();
     this.effect = e => this.particles.emit(e.detail.point, { kind: e.detail.kind });
     model.addEventListener('star-effect', this.effect);
     this.resize = () => {
-      this.camera.aspect = innerWidth / innerHeight;
+      this.camera.aspect = container.clientWidth / container.clientHeight;
       this.camera.updateProjectionMatrix();
-      if (!this.renderer.xr.isPresenting) this.renderer.setSize(innerWidth, innerHeight);
+      if (!this.renderer.xr.isPresenting) this.renderer.setSize(container.clientWidth, container.clientHeight);
     };
     window.addEventListener('resize', this.resize);
     this.change = (e) => this.sync(e.detail.entity);
@@ -88,124 +101,82 @@ export class VRWorld {
     return new THREE.CanvasTexture(canvas);
   }
   makeEnvironment() {
-    let seed = 4821;
-    const random = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
-    const positions = [],
-      colors = [];
-    for (let i = 0; i < 3200; i++) {
-      const yaw = random() * Math.PI * 2,
-        y = random() * 2 - 1,
-        r = 18 + random() * 43,
-        s = Math.sqrt(1 - y * y);
-      positions.push(Math.cos(yaw) * s * r, y * r + 1.6, Math.sin(yaw) * s * r);
-      const color = new THREE.Color(palette[i % 4]).multiplyScalar(0.5 + random() * 0.5);
-      colors.push(color.r, color.g, color.b);
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    this.scene.add(
-      new THREE.Points(
-        geometry,
-        new THREE.PointsMaterial({
-          size: 0.11,
-          map: this.starTexture,
-          vertexColors: true,
-          transparent: true,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-        }),
-      ),
-    );
-    // Nearby dust and floor rings give head movement a visible depth reference.
-    const dust = Float32Array.from({ length: 240 }, (_, i) =>
-      i % 3 === 1 ? 0.25 + random() * 3 : (random() - 0.5) * 7,
-    );
-    const dg = new THREE.BufferGeometry();
-    dg.setAttribute('position', new THREE.BufferAttribute(dust, 3));
-    this.scene.add(
-      new THREE.Points(
-        dg,
-        new THREE.PointsMaterial({
-          size: 0.015,
-          color: '#6b92b1',
-          map: this.starTexture,
-          transparent: true,
-          opacity: 0.45,
-          depthWrite: false,
-        }),
-      ),
-    );
-    for (const radius of [1.1, 2.2, 3.6, 6, 8.4]) {
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(radius, radius + 0.008, 128),
-        new THREE.MeshBasicMaterial({
-          color: '#41647f',
-          transparent: true,
-          opacity: radius > 3 ? 0.13 : 0.26,
-          side: THREE.DoubleSide,
-          depthWrite: false,
-        }),
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.015;
-      this.scene.add(ring);
-    }
-    const grid = new THREE.GridHelper(20, 40, '#233b53', '#0c1a2a');
-    grid.material.transparent = true;
-    grid.material.opacity = 0.24;
-    this.scene.add(grid);
+    this.environment=new VREnvironment(this.scene,{reducedMotion:this.reducedMotion});
   }
   makePanel() {
-    this.panel = new THREE.Group();
-    this.panel.position.set(0, -0.39, -0.95);
-    this.camera.add(this.panel);
-    const background = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.02, 0.29),
-      new THREE.MeshBasicMaterial({
-        color: '#091725',
-        transparent: true,
-        opacity: 0.9,
-        depthWrite: false,
-      }),
-    );
-    background.position.z = -0.004;
-    this.panel.add(background);
-    this.panelTitle = label('', 0.96, 0.09);
-    this.panelTitle.position.y = 0.07;
-    this.panel.add(this.panelTitle);
-    this.buttons = [];
-    for (const [i, [id, text]] of [
-      ['finish', '완성해서 띄우기'],
-      ['undo', '되돌리기'],
-      ['library', '별자리 도감'],
-      ['exit', 'VR 나가기'],
-    ].entries()) {
-      const mesh = label(text, 0.235, 0.08);
-      mesh.position.set((i - 1.5) * 0.248, -0.045, 0);
-      mesh.userData.action = id;
-      this.panel.add(mesh);
-      this.buttons.push(mesh);
-    }
-    this.panelNote = label('주먹 1초 · 생성  /  집어서 이동  /  좌우로 흔들어 삭제', 0.94, 0.065);
-    this.panelNote.position.y = -0.105;
-    this.panel.add(this.panelNote);
-    this.raycaster = new THREE.Raycaster();
+    this.uiAnchor=new THREE.Group();this.scene.add(this.uiAnchor);
+    this.desk=new VRDesk(this.uiAnchor,label,textTexture);
+    this.panel=this.desk.panel;this.panelTitle=this.desk.title;
+    this.panelNote=this.desk.note;this.buttons=this.desk.buttons;
+    this.raycaster=new THREE.Raycaster();
+  }
+  anchorUI(camera) {
+    this.setUIAnchor(camera.getWorldPosition(new THREE.Vector3()),camera.getWorldQuaternion(new THREE.Quaternion()));
+  }
+  setUIAnchor(position,quaternion) {
+    this.uiAnchor.position.copy(position);
+    // Ignore pitch and roll so looking down at entry never tilts the desk or
+    // puts it behind the visitor. YXZ retains the heading of the head pose.
+    const angles = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ');
+    this.uiAnchor.rotation.set(0, angles.y, 0);
+    this.uiAnchor.updateWorldMatrix(true, true);
+    this.environment?.anchor(this.uiAnchor.position);
+    this.desk?.anchor(this.uiAnchor.position.y);
+    this.library?.anchor(this.uiAnchor.position.y);
+    this.uiAnchorPending = false;
+  }
+  queueUIAnchor() {
+    this.uiAnchorPending = true;
+    this.panel.visible = false;
+    if(this.library)this.library.group.visible = false;
+  }
+  updateUIAnchor(frame) {
+    if (!this.uiAnchorPending || !this.renderer.xr.isPresenting) return;
+    // setSession can resolve before tracking delivers a pose. Never use the
+    // preview camera or an empty XR pose as the desk's permanent origin.
+    if (!frame?.getViewerPose(this.renderer.xr.getReferenceSpace())) return;
+    this.anchorUI(this.renderer.xr.getCamera());
   }
   actionAt(origin, direction) {
-    const group = this.library.visible ? this.library.group : this.panel;
-    if (!group.visible) return null;
-    group.updateWorldMatrix(true, true);
+    if(this.uiAnchorPending)return null;
+    this.uiAnchor.updateWorldMatrix(true, true);
     this.raycaster.set(origin, direction);
-    return this.raycaster.intersectObjects(this.library.visible ? this.library.buttons : this.buttons, false)[0]?.object.userData.action || null;
+    const buttons=[...(this.panel.visible?this.buttons:[]),...(this.library.group.visible?this.library.buttons:[])];
+    return this.raycaster.intersectObjects(buttons,false).find(hit=>this.library.acceptsHit(hit))?.object.userData.action || null;
   }
-  updatePanel() {
-    const title = `${this.model.draft.shapeId ? `${this.model.draft.title} 발견` : 'VR 우주'}  ·  ${this.model.works.length}/${VR_MAX_WORKS} 별자리  ·  ${this.model.draft.stars.length}/${VR_MAX_STARS} 별`;
-    if (title !== this.panelText) {
-      this.panelTitle.material.map.dispose();
-      this.panelTitle.material.map = textTexture(title);
-      this.panelText = title;
+  updatePanel() {this.desk.update(this.model);}
+  clearHighlights() {
+    this.desk.clearHover();
+    this.library.clearHover();
+    for(const e of this.entries.values()) {
+      e.cluster.uniforms.uSelected.value=-1;e.cluster.uniforms.uHeld.value=0;
+      e.cluster.uniforms.uSecondary.value=-1;e.cluster.uniforms.uSecondaryHeld.value=0;
     }
+  }
+  hoverUI(origin,direction) {
+    const action=this.actionAt(origin,direction);this.desk.hover(action);this.library.hover(action);return action;
+  }
+  highlight(target,held=false) {
+    if(!target)return;const entry=this.entries.get(target.entity.id);if(!entry)return;
+    const u=entry.cluster.uniforms,primary=u.uSelected.value === -1;
+    u[primary?'uSelected':'uSecondary'].value=target.entity.stars.findIndex(s=>s.id===target.star.id);
+    u[primary?'uHeld':'uSecondaryHeld'].value=held?1:0;
+  }
+  hoverStar(point,origin,direction) {
+    let near=null,far=null,nearDistance=.14,farDistance=Infinity;
+    for(const entry of this.entries.values()) {
+      if(entry.flight)continue;
+      for(let i=0;i<entry.worldStars.length;i++) {
+      const p=entry.worldStars[i],dx=p.x-point.x,dy=p.y-point.y,dz=p.z-point.z;
+      const d=Math.hypot(dx,dy,dz);
+      if(d<nearDistance){nearDistance=d;near={entity:entry.entity,star:entry.entity.stars[i],distance:d};}
+      const x=p.x-origin.x,y=p.y-origin.y,z=p.z-origin.z,t=x*direction.x+y*direction.y+z*direction.z;
+      if(t<.05||t>14||t>=farDistance)continue;
+      const off=Math.hypot(x-t*direction.x,y-t*direction.y,z-t*direction.z);
+      if(off<.07+t*.018){farDistance=t;far={entity:entry.entity,star:entry.entity.stars[i],distance:t};}
+      }
+    }
+    return near || far;
   }
   sync(changedId = null) {
     const entities = this.model.entities,
@@ -218,29 +189,20 @@ export class VRWorld {
     for (const entity of entities) {
       if (changedId && changedId !== entity.id) continue;
       let entry = this.entries.get(entity.id);
+      if(entry?.isDraft && entity!==this.model.draft && !this.reducedMotion) {
+        const from=entry.center.clone().applyMatrix4(entry.group.matrixWorld);
+        const radius=Math.max(.025,...entry.worldStars.map(p=>p.distanceTo(from)));
+        const head=(this.renderer.xr.isPresenting?this.renderer.xr.getCamera():this.camera).getWorldPosition(new THREE.Vector3());
+        const direction=from.clone().sub(head),end=new THREE.Vector3().copy(entity.position).sub(head);
+        entry.flight={start:performance.now(),duration:2800,from,head,radius,fromQuaternion:entry.group.quaternion.clone(),
+          direction:direction.clone().normalize(),turn:new THREE.Quaternion().setFromUnitVectors(direction.clone().normalize(),end.clone().normalize()),
+          near:Math.max(.25,direction.length()),far:end.length(),toQuaternion:new THREE.Quaternion().copy(entity.quaternion),turnNow:new THREE.Quaternion()};
+      }
+      if(entry && entity===this.model.draft){entry.flight=null;entry.cluster.uniforms.uCoreScale.value=1;}
       if (!entry) {
-        const group = new THREE.Group(),
-          geometry = new THREE.BufferGeometry();
-        geometry.setAttribute(
-          'position',
-          new THREE.BufferAttribute(new Float32Array(VR_MAX_STARS * 3), 3).setUsage(
-            THREE.DynamicDrawUsage,
-          ),
-        );
+        const group = new THREE.Group();
         const color = palette[this.model.works.indexOf(entity) % palette.length] || palette[0];
-        const stars = new THREE.Points(
-          geometry,
-          new THREE.PointsMaterial({
-            size: entity === this.model.draft ? 0.035 : 0.09,
-            color,
-            map: this.starTexture,
-            transparent: true,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-          }),
-        );
-        stars.frustumCulled = false;
-        stars.renderOrder = 2;
+        const cluster=this.starFields.create(group,color),stars=cluster.mesh;
         const lg = new THREE.BufferGeometry();
         lg.setAttribute(
           'position',
@@ -260,19 +222,25 @@ export class VRWorld {
         );
         line.frustumCulled = false;
         line.renderOrder = 1;
-        group.add(stars, line);
+        group.add(line);
         this.scene.add(group);
-        entry = { group, stars, line, scale: 1, direction: new THREE.Vector3() };
+        entry = { group, stars, cluster, line, scale: 1, direction: new THREE.Vector3() };
         this.entries.set(entity.id, entry);
       }
       entry.group.position.copy(entity.position);
       entry.group.quaternion.copy(entity.quaternion);
       entry.group.scale.setScalar(entity.scale);
-      entry.stars.material.size = entity === this.model.draft ? 0.035 : 0.09;
-      const attr = entry.stars.geometry.attributes.position;
-      entity.stars.forEach((s, i) => attr.setXYZ(i, s.x, s.y, s.z));
-      attr.needsUpdate = true;
-      entry.stars.geometry.setDrawRange(0, entity.stars.length);
+      entry.entity=entity;entry.worldStars ||= [];
+      entry.group.updateWorldMatrix(true,false);
+      entity.stars.forEach((s,i)=>{
+        entry.worldStars[i] ||= new THREE.Vector3();
+        this.trailPoint.copy(s).applyMatrix4(entry.group.matrixWorld);
+        if(entity.editing&&!entry.flight&&entry.starIds?.[i]===s.id)this.starTrails.move(s.id,entry.worldStars[i],this.trailPoint);
+        entry.worldStars[i].copy(this.trailPoint);
+      });
+      entry.starIds=entity.stars.map(s=>s.id);
+      entry.worldStars.length=entity.stars.length;
+      this.starFields.sync(entry.cluster,entity,entity === this.model.draft);
       const la = entry.line.geometry.attributes.position;
       entity.edges.forEach(([a, b], i) => {
         const p = entity.stars[a],
@@ -323,13 +291,37 @@ export class VRWorld {
   }
   frame(now) {
     const xr = this.renderer.xr.isPresenting;
-    this.panel.visible = xr && !this.library.visible;
+    this.panel.visible = !this.uiAnchorPending;
+    this.desk.frame(this.panel.visible);
+    this.library.group.visible=this.panel.visible;
+    this.library.stand.visible=this.panel.visible;
+    this.environment.update(now/1000);
+    this.starFields.update(this.reducedMotion?0:now/1000);
     const camera = xr ? this.renderer.xr.getCamera() : this.camera,
       head = camera.getWorldPosition(new THREE.Vector3()),
       forward = camera.getWorldDirection(new THREE.Vector3());
     this.particles.update(now / 1000);
+    this.starTrails.reducedMotion=this.reducedMotion;this.starTrails.update(now/1000);
+    this.library.guiding=this.guide.state.step!=='idle';
     this.library.update(now / 1000, forward);
     for (const entry of this.entries.values()) {
+      const f=entry.flight;
+      if(f) {
+        const t=THREE.MathUtils.clamp((now-f.start)/f.duration,0,1),s=t*t*t*(t*(t*6-15)+10),entity=entry.entity;
+        const turn=f.turnNow.identity().slerp(f.turn,s);
+        entry.group.position.copy(f.direction).applyQuaternion(turn).multiplyScalar(THREE.MathUtils.lerp(f.near,f.far,s)).add(f.head);
+        entry.group.position.y+=Math.sin(s*Math.PI)*.12;
+        entry.group.quaternion.copy(f.fromQuaternion).slerp(f.toQuaternion,s);
+        const scale=THREE.MathUtils.lerp(f.radius,entity.scale,s);entry.group.scale.setScalar(scale);
+        entry.cluster.uniforms.uCoreScale.value=THREE.MathUtils.lerp(.021,.037,s)/(.037*scale/entity.scale);
+        entry.cluster.haloMaterial.uniforms.uSize.value=THREE.MathUtils.lerp(.15,.24,s);
+        if(t===1) {
+          entry.group.position.copy(entity.position);entry.group.quaternion.copy(entity.quaternion);entry.group.scale.setScalar(entity.scale);
+          entry.cluster.uniforms.uCoreScale.value=1;entry.flight=null;
+          this.particles.emit(entity.position,{kind:'place',radius:entity.scale*1.35,now:now/1000});
+        }
+      }
+      if(entry.label)entry.label.visible=!entry.flight;
       entry.group.updateWorldMatrix(true, false);
       entry.direction.copy(entry.center).applyMatrix4(entry.group.matrixWorld).sub(head).normalize();
       if (entry.artMesh) entry.artMesh.position.z = entry.center.z - .02;
@@ -340,9 +332,11 @@ export class VRWorld {
       forward,
       now / 1000,
     );
+    this.guide.update(now/1000);
   }
   disposeEntry(entry) {
     this.artwork.release(entry);
+    this.starFields.release(entry.cluster);
     this.scene.remove(entry.group);
     entry.group.traverse((o) => {
       o.geometry?.dispose();
@@ -359,11 +353,15 @@ export class VRWorld {
     this.model.removeEventListener('change', this.change);
     this.model.removeEventListener('star-effect', this.effect);
     this.library.dispose();
+    this.guide.dispose();
     this.particles.dispose();
+    this.starTrails.dispose();
     window.removeEventListener('resize', this.resize);
     for (const entry of this.entries.values()) this.disposeEntry(entry);
     this.entries.clear();
+    this.starFields.dispose();
     this.scene.traverse((o) => {
+      if(o.isInstancedMesh)o.dispose();
       o.geometry?.dispose();
       if (o.material) {
         o.material.map?.dispose();

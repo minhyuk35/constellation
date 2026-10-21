@@ -1,4 +1,8 @@
 @import './panels.css';
+.vr-device-label { display:flex;align-items:center;gap:12px;font-size:11px;color:#9eafbd;margin-top:18px;pointer-events:auto; }
+.vr-device-label input { width:150px;padding:8px 10px;color:#deebf3;background:#0a1825;border:1px solid #456071;border-radius:7px;font:inherit; }
+.vr-monitor-note { font-size:10px!important;line-height:1.6!important;color:#8399ab;margin:5px 0!important; }
+.vr-monitor-link { font-size:10px;color:#94bdc8;pointer-events:auto; }
 * {
   box-sizing: border-box;
 }
@@ -146,6 +150,11 @@ footer small a {
 .in-vr .vr-chrome {
   display: none;
 }
+#vr-preview { pointer-events:auto;color:#cbdde9;background:#102335cc;border:1px solid #67828a80;border-radius:8px;padding:11px 16px;font-size:11px; }
+#vr-preview[aria-pressed='true'] { color:#edd6a8;border-color:#a79978; }
+.preview-room .vr-welcome,.preview-room footer .vr-tools,.preview-room footer small,.preview-room .vr-monitor-link { display:none; }
+.preview-room footer p { display:inline-block;padding:10px 18px;border:1px solid #47637555;border-radius:24px;background:#081522bf;color:#aec4d1;font-size:11px; }
+@media(max-width:760px) { #vr-preview { padding:9px;font-size:10px; } header { gap:12px; } .preview-room #vr-count { display:none; } }
 @media (max-width: 760px) {
   header {
     inset: 20px;
@@ -188,3 +197,10 @@ footer small a {
 .library-dialog .library-card { background-color: #a9cce604; }
 .library-dialog .close-dialog { border: 1px solid #55718855; border-radius: 6px; padding: 8px 12px; font-size: 11px; }
 .vr-tools { flex-wrap: wrap; }
+@media (max-height: 700px) and (min-width: 761px) {
+  .vr-welcome { top: 80px; }
+  .vr-welcome h1 { font-size: 27px;line-height: 1.35;margin: 12px 0; }
+  .vr-welcome #vr-status { min-height: 0;margin: 8px 0; }
+  .vr-device-label { margin-top: 10px; }
+  footer { bottom: 12px; }
+}

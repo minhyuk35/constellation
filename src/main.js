@@ -509,6 +509,7 @@ try {
     lastSupernovaHour = -1;
   universe.start((dt, now) => {
     hand.tick(now);
+    universe.dragTrails(model.stars,model.draggers,now);
     pose.tick(now, hand.detectedHands > 0);
     // Movement intensity reaching the ambient soundscape: how actively someone
     // is being tracked by the pose layer, or how recently a star was edited by

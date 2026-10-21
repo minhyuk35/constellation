@@ -1,4 +1,5 @@
 import { SKY_SLOTS } from '../src/exhibition/sky-layout.js';
+export { VRMonitorRoom } from './vr-monitor.js';
 
 const encoder = new TextEncoder();
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -158,6 +159,34 @@ async function route(request, env) {
   const url = new URL(request.url),
     path = url.pathname,
     method = request.method;
+  if(path.startsWith('/api/vr-monitor/')) {
+    if(!env.VR_MONITOR)fail(503,'VR 모니터링 서버가 아직 연결되지 않았습니다.');
+    if(method === 'POST' && path === '/api/vr-monitor/ticket') {
+      const data=await body(request);
+      if(!['operator','device'].includes(data.role))fail(400,'접속 유형을 확인해 주세요.');
+      let id;
+      if(data.role === 'operator') { requireKiosk(request,env);id=crypto.randomUUID(); }
+      else id=await visitor(request,env);
+      const claims={role:data.role,id,expires:Date.now()+60000,
+        name:data.role === 'device'?textField(data.name,24,'기기 이름'):'운영자',
+        platform:data.role === 'device'?textField(data.platform,40,'기기 유형'):'운영자'};
+      const payload=btoa(String.fromCharCode(...encoder.encode(JSON.stringify(claims)))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
+      return json({ticket:`${payload}.${await sign(payload,env)}`});
+    }
+    if(method === 'GET' && path === '/api/vr-monitor/socket') {
+      if(request.headers.get('Upgrade')?.toLowerCase() !== 'websocket')fail(426,'WebSocket 연결이 필요합니다.');
+      const [payload,signature]=String(url.searchParams.get('ticket') || '').split('.');
+      if(!payload || payload.length > 2048 || !safeEqual(signature,await sign(payload,env)))fail(403,'모니터링 인증이 만료되었습니다.');
+      let claims;
+      try { claims=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(payload.replaceAll('-','+').replaceAll('_','/')),c=>c.charCodeAt(0)))); }
+      catch { fail(403,'모니터링 인증을 확인해 주세요.'); }
+      if(!['operator','device'].includes(claims?.role) || !uuid.test(claims.id || '') ||
+        !Number.isFinite(claims.expires) || claims.expires < Date.now())fail(403,'모니터링 인증이 만료되었습니다.');
+      const headers=new Headers({Upgrade:'websocket','X-Monitor-Claims':encodeURIComponent(JSON.stringify(claims))});
+      return env.VR_MONITOR.get(env.VR_MONITOR.idFromName('exhibition')).fetch(new Request('https://monitor.internal/',{headers}));
+    }
+    fail(404,'모니터링 주소를 확인해 주세요.');
+  }
   if (method === 'GET' && (path === '/api/health' || path === '/api/kiosk/status')) {
     if (path === '/api/kiosk/status') requireKiosk(request, env);
     await env.DB.prepare('SELECT id FROM constellations LIMIT 1').all();
@@ -375,6 +404,7 @@ export default {
       );
     }
     const headers = new Headers(response.headers);
+    if(response.status === 101)return response;
     headers.set('X-Content-Type-Options', 'nosniff');
     if (origin && allowed.has(origin)) {
       headers.set('Access-Control-Allow-Origin', origin);

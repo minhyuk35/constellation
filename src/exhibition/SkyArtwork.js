@@ -5,9 +5,11 @@ import { artVertex, artFragment } from '../scene/shaders.js';
 // Load only the part of the sky near the camera. Shared atlases have a single
 // GPU texture; release it when the last nearby constellation leaves the view.
 export class SkyArtwork {
-  constructor({ blending = THREE.NormalBlending } = {}) {
+  constructor({ blending = THREE.NormalBlending, opacity = 0.88, focusedOpacity = 0.96 } = {}) {
     this.assets = new Map();
     this.blending = blending;
+    this.opacity = opacity;
+    this.focusedOpacity = focusedOpacity;
     this.loader = new THREE.TextureLoader();
   }
   update(works, camera, forward, now) {
@@ -21,7 +23,7 @@ export class SkyArtwork {
       if (dot < releaseAt) this.release(entry);
       if (entry.artMesh) {
         entry.artMesh.material.uniforms.uTime.value = now;
-        entry.artMesh.material.uniforms.uOpacity.value = entry.focused ? 0.96 : 0.88;
+        entry.artMesh.material.uniforms.uOpacity.value = entry.focused ? this.focusedOpacity : this.opacity;
       }
     }
   }
@@ -56,7 +58,7 @@ export class SkyArtwork {
           // Stellarium images and the zodiac atlas have opaque black mattes.
           // Other illustrations already have alpha, which must stay intact.
           uBlackKey: { value: art.blackMatte ? 1 : 0 },
-          uOpacity: { value: 0.88 }, uTime: { value: 0 },
+          uOpacity: { value: this.opacity }, uTime: { value: 0 },
         },
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);

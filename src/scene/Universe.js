@@ -11,6 +11,7 @@ import {
 import { transformPoint } from '../recognition/matcher.js';
 import { artwork } from '../data/art.js';
 import { StarParticles } from './StarParticles.js';
+import { StarTrails } from './StarTrails.js';
 import { GuidanceOverlay } from './GuidanceOverlay.js';
 
 // How much larger the illustration is than the star shape's own spread, and
@@ -62,6 +63,8 @@ export class Universe {
     this.makeStars();
     this.makeDrawing();
     this.starParticles = new StarParticles(this.scene);
+    this.starTrails=new StarTrails(this.scene,{lifetime:.24,maxLength:64,width:3.5,minDistance:2,maxJump:240,reducedMotion:this.reducedMotion});
+    this.dragTrailPoints=new Map();
     this.guidanceOverlay = new GuidanceOverlay(this.scene);
     this.makeArt();
     this.makePresence();
@@ -266,6 +269,7 @@ export class Universe {
   }
 
   resize() {
+    this.starTrails?.clear();this.dragTrailPoints?.clear();
     this.width = this.container.clientWidth;
     this.height = this.container.clientHeight;
     this.camera.aspect = this.width / this.height;
@@ -530,6 +534,15 @@ export class Universe {
     if (this.reducedMotion) return;
     this.starParticles.emit({ ...this.toWorld(point), z: 3 }, { kind, radius: 85 * strength });
   }
+  dragTrails(stars,draggers,now) {
+    for(const id of this.dragTrailPoints.keys())if(!draggers.has(id))this.dragTrailPoints.delete(id);
+    for(const id of draggers) {
+      const star=stars.find(s=>s.id===id);if(!star)continue;
+      const point={...this.toWorld(star),z:.5},previous=this.dragTrailPoints.get(id);
+      if(previous)this.starTrails.move(id,previous,point,now/1000);
+      this.dragTrailPoints.set(id,point);
+    }
+  }
   start(onFrame) {
     this.renderer.setAnimationLoop((now) => {
       const dt = Math.min(0.05, (now - (this.lastTime || now)) / 1000);
@@ -543,6 +556,7 @@ export class Universe {
       onFrame?.(dt, now);
       this.starParticles.reducedMotion = this.reducedMotion;
       this.starParticles.update(now / 1000);
+      this.starTrails.reducedMotion=this.reducedMotion;this.starTrails.update(now/1000);
       this.guidanceOverlay.update(now / 1000, this.camera, this.renderer.getPixelRatio(), this.reducedMotion);
       this.tickPresence(dt);
       this.skyMaterial.uniforms.uTime.value = this.clock;
@@ -753,6 +767,7 @@ export class Universe {
     for (const texture of this.artTextures.values()) texture.dispose();
     this.artTextures.clear();
     this.starParticles.dispose();
+    this.starTrails.dispose();
     this.guidanceOverlay.dispose();
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();

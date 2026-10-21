@@ -41,6 +41,7 @@ async function parse(response) {
   if (!response.ok) {
     const error = new Error(data.error || '전시 서버 연결을 확인해 주세요.');
     error.code = data.code;
+    error.status = response.status;
     error.owner = data.owner;
     throw error;
   }

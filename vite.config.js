@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 export default defineConfig({
   base: './',
   server: {
-    proxy: { '/api': 'http://127.0.0.1:8787' },
+    proxy: { '/api': { target: 'http://127.0.0.1:8787', ws: true } },
     watch: { ignored: ['**/tmp/**', '**/.wrangler/**', '**/public/wasm/**', '**/public/models/**'] },
   },
   resolve: {
@@ -22,6 +22,7 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       'three',
+      'three/addons/controls/OrbitControls.js',
       'lucide',
       '@mediapipe/tasks-vision',
       'qrcode',
@@ -40,6 +41,7 @@ export default defineConfig({
         create: 'create.html',
         entrance: 'entrance.html',
         vr: 'vr.html',
+        monitor: 'monitor.html',
       },
       output: {
         manualChunks(id) {

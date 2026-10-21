@@ -30,7 +30,15 @@ export const CONFIG = Object.freeze({
     interpolationMs: 24,
     maxInterpolationMs: 55,
   }),
-  handGestures: Object.freeze({ pinchEnter: 0.40, pinchExit: 0.56, confirmMs: 30 }),
+  handGestures: Object.freeze({
+    pinchEnter: 0.40, pinchExit: 0.56, confirmMs: 30,
+    // A bent index can oppose the thumb while the other three fingers stay folded.
+    oppositionReach: 0.32, oppositionReachHold: 0.26,
+    oppositionAdvance: 0.20, oppositionAdvanceHold: 0.12,
+    // Compact side/depth pinches need separation from the folded middle finger,
+    // even when the index does not advance along the wrist-to-knuckle axis.
+    oppositionSpread: 0.16, oppositionSpreadHold: 0.10,
+  }),
   particleCount: 9500,
   presenceCount: 360,
   poseDetectInterval: 110,

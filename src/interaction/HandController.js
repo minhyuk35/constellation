@@ -289,12 +289,12 @@ export class HandController {
         this.model.endDrag(slot.held);
         slot.held = null;
       }
-      if (gesture === 'fist') {
-        if (previous !== 'fist') {
+      if (gesture === 'fist' && raw === 'fist' && !slot.gestures.pending) {
+        if (!slot.fistStart) {
           slot.fistStart = timestamp;
           slot.spawned = false;
         }
-        if (!slot.spawned && timestamp - slot.fistStart > CONFIG.fistHold) {
+        if (!slot.spawned && raw === 'fist' && !slot.gestures.pending && timestamp - slot.fistStart > CONFIG.fistHold) {
           slot.spawned = true;
           if (!this.pick(slot, width, height, 45)) {
             const p = this.drawingPoint(slot);
@@ -305,7 +305,7 @@ export class HandController {
             } else this.callbacks.toast('한 하늘에 별은 48개까지 놓을 수 있어요.');
           }
         }
-      } else slot.fistStart = 0;
+      } else if (gesture !== 'fist' || raw === 'pinch') slot.fistStart = 0;
       if (gesture === 'open' && previous !== 'open' && now - slot.openAt > 1200) {
         this.callbacks.burst(this.drawingPoint(slot), 1.7, 'wave');
         slot.openAt = now;

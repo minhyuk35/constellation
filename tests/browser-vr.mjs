@@ -83,8 +83,9 @@ try {
       pose('open', 2, 100); pose('open', 2, 140);
       pose('pinch', 2, 200); pose('pinch', 2, 240);
       const emptyPinch = app.model.draft.stars.length;
-      pose('fist', .15, 300); pose('fist', .15, 340);
-      pose('fist', .15, 1400); pose('fist', .15, 2500);
+      pose('open',.15,250);pose('open',.15,290);pose('open',.15,490);
+      pose('fist', .15, 500); pose('fist', .15, 540);
+      pose('fist', .15, 1600); pose('fist', .15, 2500);
       const created = app.model.draft.stars.length;
       pose('pinch', .15, 2600); pose('pinch', .15, 2640);
       pose('pinch', .4, 2700);
@@ -136,7 +137,7 @@ try {
     assert.equal(result.created, 1);
     assert.equal(result.shaken, 0);
     assert.equal(result.undoShake, 1);
-    assert.ok(result.particles >= 176);
+    assert.ok(result.particles >= 4,'creation and deletion emit distinct small wave sets');
     assert.ok(result.moved > 0.3);
     assert.equal(result.released, true);
     assert.equal(result.beforeRearm, false);
@@ -168,7 +169,7 @@ try {
       app.action('finish');
       const library = app.world.library, visited = new Set();
       library.visible = true; library.action('filter:all');
-      for (let i = 0; i < Math.ceil(SHAPES.length / 6); i++) {
+      for (let i = 0; i < Math.ceil(SHAPES.length / 3); i++) {
         for (const id of library.entries.keys()) visited.add(id);
         library.action('library-next');
       }

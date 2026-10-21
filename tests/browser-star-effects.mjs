@@ -23,7 +23,7 @@ try {
   await page.getByRole('button', { name: '새로운 우주', exact: true }).click();
   await page.mouse.click(720, 410);
   await page.waitForTimeout(110);
-  assert.equal(await page.evaluate(() => window.fxScene.starParticles.emitted), 76);
+  assert.equal(await page.evaluate(() => window.fxScene.starParticles.emitted), 2);
   await page.screenshot({ path: 'tmp/qa/web-star-create.png' });
   const shaken = await page.evaluate(() => {
     const model = window.fxModel, id = model.stars[0].id, now = performance.now();
@@ -33,7 +33,7 @@ try {
     }
     return { count: model.stars.length, emitted: window.fxScene.starParticles.emitted };
   });
-  assert.equal(shaken.count, 0); assert.equal(shaken.emitted, 176);
+  assert.equal(shaken.count, 0); assert.equal(shaken.emitted, 4);
   await page.waitForTimeout(90);
   await page.screenshot({ path: 'tmp/qa/web-star-delete.png' });
   await page.keyboard.press('Control+z');
@@ -41,7 +41,7 @@ try {
   await page.mouse.click(1000, 450);
   await page.keyboard.press('Delete');
   assert.equal(await page.locator('#star-count').innerText(), '01 STARS');
-  assert.equal(await page.evaluate(() => window.fxScene.starParticles.emitted), 352);
+  assert.equal(await page.evaluate(() => window.fxScene.starParticles.emitted), 8);
   await page.goto('http://127.0.0.1:5173/vr.html');
   await page.waitForSelector('#vr-stage canvas');
   await page.evaluate(async () => {
@@ -55,7 +55,7 @@ try {
   await page.evaluate(() => window.fxVR.model.remove({ entity: window.fxVR.model.draft, star: window.fxVR.model.draft.stars[0] }));
   await page.waitForTimeout(90);
   await page.screenshot({ path: 'tmp/qa/vr-star-delete.png' });
-  assert.equal(await page.evaluate(() => window.fxVR.world.particles.emitted), 176);
+  assert.equal(await page.evaluate(() => window.fxVR.world.particles.emitted), 4);
   assert.deepEqual(errors, []);
   console.log('PASS: real WebGL creation/shake-deletion/keyboard-deletion particles and undo on website, same GPU effects in VR; no shader errors.');
 } finally { await browser.close(); }

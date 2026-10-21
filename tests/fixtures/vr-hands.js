@@ -7,9 +7,17 @@ export function handPoints(gesture, anchor = { x: 0, y: 1.4, z: -.55 }) {
   points[17] = { x: .045, y: .065, z: 0 };
   for (const [i, tip] of [8, 12, 16, 20].entries()) {
     points[tip - 2] = { x: (i - 1) * .025, y: .115, z: 0 };
-    points[tip] = { x: (i - 1) * .025, y: gesture === 'fist' ? .045 : .17, z: 0 };
+    points[tip] = { x: (i - 1) * .025, y: ['fist','precision','compact-side','compact-depth'].includes(gesture) ? .045 : .17, z: 0 };
   }
   points[4] = gesture === 'pinch' ? { ...points[8], x: points[8].x + .008 } : { x: -.075, y: .065, z: 0 };
+  if(gesture === 'precision') {
+    points[8]={x:-.024,y:.106,z:-.018};
+    points[4]={x:-.032,y:.104,z:-.018};
+  }
+  if(gesture==='compact-side'||gesture==='compact-depth') {
+    points[8]=gesture==='compact-side'?{x:-.065,y:.055,z:-.015}:{x:-.025,y:.055,z:-.044};
+    points[4]={...points[8],x:points[8].x-.008};
+  }
   const origin = gesture === 'fist' ? points[9] : {
     x: (points[4].x + points[8].x) / 2, y: (points[4].y + points[8].y) / 2, z: 0,
   };
